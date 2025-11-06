@@ -10,47 +10,96 @@
 
   <style>
     body {
-      background-color: #ffffff; /* 黑色背景 */
-      color: #3c3c3c; /* 白色文字 */
-      font-family: "Helvetica Neue", Arial, sans-serif; /* 现代无衬线字体 */
-      margin: 0;
+      background-color: #ffffff;
+      color: #3c3c3c;
+      font-family: "Helvetica Neue", Arial, sans-serif;
       padding: 60px;
       text-align: center;
     }
 
     h1 {
-      font-size: 24px;
+      font-size: 28px;
       font-weight: 300;
       letter-spacing: 1px;
-      margin-bottom: 50px;
+      margin-top: 40px;
+      margin-bottom: 40px;
     }
 
     a {
       color: #575757;
       text-decoration: none;
-      font-size: 12px;
-
-      transition: all 0.3s ease;
+      font-size: 14px;
       display: inline-block;
+      transition: all 0.3s ease;
     }
 
     a:hover {
-   
-      color: #989898;
       transform: scale(1.5);
     }
 
+    b {
+      color: #575757;
+      text-decoration: none;
+      font-size: 12px;
+      font-weight: 400;
+      display: inline-block;
+      transition: all 0.3s ease;
+    }
+
     p {
-      margin: 0;
+      margin: 0 0 5px 0;
+    }
+
+    .color-span {
+      transition: color 0.2s;
     }
   </style>
 </head>
 
 <body>
   <h1>Xin Tan</h1>
-  <a href="webzine.html" target="_blank">
-    <p>Project 01</p>
-  </a>
-  
+  <p><b>interactive design 2025 fall</b></p>
+  <p><b>xin.tan.xt224@yale.edu</b></p>
+  <br>
+  <br>
+  <p><a href="webzine.html" target="_blank" class="color-loop">Project 01 Webzine</a></p>
+  <p><a href="" target="_blank" class="color-loop">Project 02 Archive</a></p>
+  <p><a href="" target="_blank" class="color-loop">Project 03 ??????</a></p>
+
+  <script>
+    const links = document.querySelectorAll('.color-loop');
+
+    links.forEach(link => {
+      const text = link.textContent;
+      link.textContent = ''; // 清空原文本
+
+      // 拆分每个字符
+      for (let char of text) {
+        const span = document.createElement('span');
+        span.textContent = char;
+        span.classList.add('color-span');
+        link.appendChild(span);
+      }
+
+      let intervalId;
+
+      link.addEventListener('mouseenter', () => {
+        const spans = link.querySelectorAll('span');
+        let index = 0;
+        intervalId = setInterval(() => {
+          spans.forEach((span, i) => {
+            const colors = ['red', 'green', 'blue'];
+            span.style.color = colors[(i + index) % colors.length];
+          });
+          index++;
+        }, 200);
+      });
+
+      link.addEventListener('mouseleave', () => {
+        clearInterval(intervalId);
+        link.querySelectorAll('span').forEach(span => span.style.color = '');
+      });
+    });
+  </script>
 </body>
 </html>
