@@ -1,0 +1,1496 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>EMOJI — Spiral Evolution</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        ::selection {
+            color: #fff;
+        }
+
+        ::-moz-selection {
+            color: #fff;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Arial, sans-serif;
+            background: #ededed;
+            color: #000;
+            overflow: hidden;
+        }
+
+        body.detail-open {
+            cursor: none;
+        }
+
+        body:not(.detail-open) {
+            cursor: none;
+        }
+
+        .cursor {
+            width: 20px;
+            height: 20px;
+            border: 2px solid #000;
+            border-radius: 50%;
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            transition: transform 0.2s ease, opacity 0.3s ease;
+            mix-blend-mode: difference;
+        }
+
+        .cursor.hover {
+            transform: scale(2);
+        }
+
+        .cursor.hidden {
+            opacity: 0;
+        }
+
+        .emoji-cursor {
+            position: fixed;
+            pointer-events: none;
+            z-index: 10000;
+            font-size: 24px;
+            transform: translate(-50%, -50%);
+            transition: font-size 0.2s ease;
+            display: none;
+        }
+
+        .emoji-cursor.active {
+            display: block;
+        }
+
+        .emoji-cursor.hover {
+            font-size: 36px;
+        }
+
+        .spiral-container {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+            overflow: hidden;
+        }
+
+        .spiral-canvas {
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            transition: transform 0.5s cubic-bezier(0.16, 1, 0.3, 1);
+        }
+
+        .timeline-node {
+            position: absolute;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.16, 1, 0.3, 1);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .node-emoji {
+            font-size: 4rem;
+            transition: all 0.3s ease;
+            filter: grayscale(0.8) brightness(0.7);
+        }
+
+        .node-image {
+            width: 120px;
+            height: 120px;
+            object-fit: cover;
+            transition: all 0.3s ease;
+            filter: grayscale(0.8) brightness(0.9);
+            display: block;
+        }
+
+        .timeline-node:hover .node-emoji {
+            filter: grayscale(0) brightness(1);
+            transform: scale(1.3) rotate(10deg);
+        }
+
+        .timeline-node:hover .node-image {
+            filter: grayscale(0) brightness(1);
+            transform: scale(1.2);
+        }
+
+        .node-year {
+            font-size: 0.9rem;
+            font-weight: 700;
+            margin-top: 10px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            letter-spacing: 0.1em;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .timeline-node:hover .node-year {
+            opacity: 1;
+        }
+
+        .node-title {
+            font-size: 0.75rem;
+            margin-top: 5px;
+            opacity: 0;
+            transition: all 0.3s ease;
+            text-align: center;
+            max-width: 120px;
+            font-weight: 500;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .timeline-node:hover .node-title {
+            opacity: 0.7;
+        }
+
+        .spiral-path {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 2000px;
+            height: 1500px;
+            pointer-events: none;
+        }
+
+        .spiral-line {
+            stroke: rgba(0, 0, 0, 0.1);
+            stroke-width: 0;
+            fill: none;
+        }
+
+        .controls {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            display: flex;
+            gap: 10px;
+            z-index: 100;
+        }
+
+        .control-btn {
+            width: 36px;
+            height: 36px;
+            background: transparent;
+            border: 1px solid rgba(0, 0, 0, 0.15);
+            color: #000;
+            font-size: 0.9rem;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 300;
+        }
+
+        .control-btn.wide {
+            width: auto;
+            padding: 0 15px;
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+        }
+
+        .control-btn:hover {
+            border-color: rgba(0, 0, 0, 0.4);
+            background: rgba(0, 0, 0, 0.03);
+        }
+
+        .info-panel {
+            position: fixed;
+            top: 40px;
+            left: 40px;
+            z-index: 100;
+        }
+
+        .info-title {
+            font-size: 1.1rem;
+            font-weight: 700;
+            margin-bottom: 3px;
+            letter-spacing: 0.05em;
+        }
+
+        .info-subtitle {
+            font-size: 0.7rem;
+            opacity: 0.4;
+            letter-spacing: 0.2em;
+            font-weight: 300;
+        }
+
+        .hint {
+            position: fixed;
+            bottom: 40px;
+            left: 50%;
+            transform: translateX(-50%);
+            font-size: 0.7rem;
+            opacity: 0.25;
+            letter-spacing: 0.15em;
+            text-align: center;
+            font-weight: 300;
+        }
+
+        .zoom-level {
+            position: fixed;
+            bottom: 40px;
+            right: 40px;
+            font-size: 0.85rem;
+            opacity: 0.3;
+        }
+
+        .detail-page {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100vh;
+            background: #fff700;
+            z-index: 500;
+            transform: translateX(100%);
+            transition: transform 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+            overflow-y: auto;
+        }
+
+        .detail-page.active {
+            transform: translateX(0);
+        }
+
+        .close-detail {
+            position: fixed;
+            top: 40px;
+            right: 40px;
+            width: auto;
+            height: 36px;
+            padding: 0 15px;
+            background: rgba(0, 0, 0, 0.8);
+            color: #fff;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            font-size: 0.75rem;
+            letter-spacing: 0.05em;
+            cursor: pointer;
+            z-index: 9999;
+            transition: all 0.3s ease;
+            backdrop-filter: blur(10px);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 300;
+        }
+
+        .close-detail:hover {
+            background: #000;
+            border-color: rgba(255, 255, 255, 0.8);
+        }
+
+        .detail-hero {
+            height: 100vh;
+            position: relative;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #000;
+            overflow: hidden;
+        }
+
+        .detail-hero-bg {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+        }
+
+        .scroll-indicator {
+            position: absolute;
+            bottom: 50px;
+            left: 50%;
+            transform: translateX(-50%);
+            color: #eaff00;
+            font-size: 0.9rem;
+            letter-spacing: 0.2em;
+            opacity: 0.5;
+            animation: bounce 2s infinite;
+            z-index: 10;
+            mix-blend-mode: difference;
+        }
+
+        @keyframes bounce {
+            0%, 100% { transform: translate(-50%, 0); }
+            50% { transform: translate(-50%, 10px); }
+        }
+
+        .detail-body {
+            background: #cbcbcb;
+            padding: 120px 10vw;
+        }
+
+        .detail-section {
+            max-width: 900px;
+            margin: 0 auto 80px;
+        }
+
+        .section-label {
+            font-size: 0.85rem;
+            font-weight: 600;
+            letter-spacing: 0.15em;
+            text-transform: uppercase;
+            opacity: 0.4;
+            margin-bottom: 20px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .section-title {
+            font-size: clamp(2rem, 4vw, 3rem);
+            font-weight: 700;
+            margin-bottom: 30px;
+            line-height: 1.2;
+        }
+
+        .section-text {
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+            line-height: 1.8;
+            color: #333;
+            margin-bottom: 30px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .quote-block {
+            border-left: 3px solid #000;
+            padding-left: 30px;
+            margin: 60px 0;
+            font-style: italic;
+            font-size: clamp(1.1rem, 2vw, 1.3rem);
+
+            opacity: 0.8;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .detail-facts-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 30px;
+            margin-top: 80px;
+        }
+
+        .fact-box {
+            padding: 40px;
+            background: #f5f5f5;
+            transition: all 0.3s ease;
+        }
+
+        .fact-box:hover {
+            background: #f6ff00;
+            color: #fff;
+            transform: translateY(-5px);
+        }
+
+        .fact-number {
+            font-size: 2.5rem;
+            font-weight: 900;
+            margin-bottom: 15px;
+            font-family: 'Courier New', Courier, monospace;
+        }
+
+        .fact-description {
+            font-size: 1rem;
+            line-height: 1.6;
+            opacity: 0.8;
+        }
+
+        @media (max-width: 768px) {
+            .node-emoji {
+                font-size: 3rem;
+            }
+            .node-image {
+                width: 80px;
+                height: 80px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="cursor"></div>
+    <div class="emoji-cursor" id="emojiCursor">😊</div>
+
+    <div class="info-panel">
+        <div class="info-title">EMOJI</div>
+        <div class="info-subtitle">SPIRAL EVOLUTION</div>
+    </div>
+
+    <div class="controls">
+        <button class="control-btn wide" id="toggleView">SPIRAL</button>
+        <button class="control-btn" id="zoomIn">+</button>
+        <button class="control-btn" id="zoomOut">−</button>
+        <button class="control-btn" id="resetView">⟲</button>
+    </div>
+
+    <div class="spiral-container" id="spiralContainer">
+        <div class="spiral-canvas" id="spiralCanvas">
+            <svg class="spiral-path" id="spiralPath"></svg>
+        </div>
+    </div>
+
+    <div class="hint">DRAG TO EXPLORE · CLICK EMOJI TO LEARN MORE</div>
+    <div class="zoom-level" id="zoomLevel">100%</div>
+
+    <div class="detail-page" id="detailPage">
+        <button class="close-detail" id="closeDetail">← BACK</button>
+        <div class="detail-content" id="detailContent"></div>
+    </div>
+
+    <script>
+        const timelineData = [
+            { year: '1648', emoji: ':‑)', title: 'Poetry Accident', image: 'https://img.20mn.fr/iMhaRFT_RGWW2Mwqj_pifw/1444x920_premier-smiley-histoire-daterait-1648' },
+            { year: '1862', emoji: '( )', title: 'Lincoln\'s Speech', image: 'https://static01.nyt.com/images/2009/01/14/nyregion/emoticon-480.jpg'},
+            { year: '1834', emoji: '🍐', title: 'Rebellious Pear', image: 'https://upload.wikimedia.org/wikipedia/commons/2/2c/Poire_typo..JPG'},
+            { year: '1881', emoji: ':)', title: 'Emotional Type', image: 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgxoCVFn1wwpWuTQj36CSXtcU2zUA8yMZ1LJbk-6U2OZDHgDcytfeNtZWvhVdCwSZwfteAXC7JGNCRqyUpfuBJjzPHkeGJQIbf0dgfBRQWYG0xkyjGmmjEpMeCuspvfCGHxZVvMkVZpt2vP/s1600/puck.jpg' },
+            { year: '1912', emoji: '•', title: 'Bierce\'s Proposal', image: null },
+            { year: '1936', emoji: '•', title: 'Harvard Lampoon', image: null },
+            { year: '1962', emoji: 'Pb', title: 'Typewriter Cartoons', image: 'https://madcoversite.com/features-typewri-toons.jpg' },
+            { year: '1967', emoji: '•', title: 'Nabokov\'s Vision', image: null },
+            { year: '1972', emoji: '☺', title: 'PLATO IV', image: 'https://lh4.googleusercontent.com/proxy/5-PrKaHD_KSs9wp3qg7B884LJ4WYbWOc2uu1IWQsj_mq8Wvt2mU_PUWpqN7s9AjqyArV1IH1rdG7uswNl0FD1fAG1bYRQg' },
+            { year: '1977', emoji: '❤️', title: 'I ❤️ NY', image: null },
+            { year: '1980', emoji: 'ASCII', title: 'ASCII Art Era', image: 'https://i.pinimg.com/474x/8b/80/ce/8b80cebb1ab3dd5b690b0fb15dca0498.jpg' },
+            { year: '1982', emoji: ':‑)', title: 'Fahlman\'s Revolution', image: null },
+            { year: '1986', emoji: '(^_^)', title: 'Kaomoji Born', image: null },
+            { year: '1990', emoji: '✦', title: 'Wingdings', image:  'https://img2.annthegran.com/font/xlarge/fireside_threads/fst0123.webp '},
+            { year: '1995', emoji: '❤️', title: 'Heart Power', image: null },
+            { year: '1999', emoji: '📱', title: '176 Pixels', image: null },
+            { year: '2000s', emoji: '📲', title: 'i-mode Era', image: null },
+            { year: '2008', emoji: '📧', title: 'Google Joins', image: null },
+            { year: '2011', emoji: '🌍', title: 'Global Explosion', image: null },
+        ];
+
+        const canvas = document.getElementById('spiralCanvas');
+        const svgPath = document.getElementById('spiralPath');
+        let zoomLevel = 1;
+        let isDragging = false;
+        let startX, startY, translateX = 0, translateY = 0;
+        let isLinearView = false;
+        let nodeElements = [];
+        let pathElement = null;
+
+        function generateSpiral() {
+            const centerX = 800;
+            const centerY = 600;
+            const startRadius = 80;
+            const radiusGrowth = 100;
+            const angleIncrement = Math.PI * 0.8;
+            
+            let pathData = '';
+            const positions = [];
+
+            timelineData.forEach((item, i) => {
+                const angle = i * angleIncrement;
+                const radius = startRadius + (i * radiusGrowth);
+                const x = centerX + radius * Math.cos(angle);
+                const y = centerY + radius * Math.sin(angle);
+
+                positions.push({ x, y, item, index: i });
+
+                if (i === 0) {
+                    pathData = `M ${x} ${y}`;
+                } else {
+                    pathData += ` L ${x} ${y}`;
+                }
+            });
+
+            const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+            path.setAttribute('d', pathData);
+            path.setAttribute('class', 'spiral-line');
+            svgPath.appendChild(path);
+            pathElement = path;
+
+            positions.forEach((pos) => {
+                const node = document.createElement('div');
+                node.className = 'timeline-node';
+                node.style.left = pos.x + 'px';
+                node.style.top = pos.y + 'px';
+                node.style.transform = 'translate(-50%, -50%)';
+                
+                const visualContent = pos.item.image 
+                    ? `<img src="${pos.item.image}" class="node-image" alt="${pos.item.title}">`
+                    : `<div class="node-emoji">${pos.item.emoji}</div>`;
+                
+                node.innerHTML = `
+                    ${visualContent}
+                    <div class="node-year">${pos.item.year}</div>
+                    <div class="node-title">${pos.item.title}</div>
+                `;
+
+                node.addEventListener('click', () => openDetail(pos.index));
+                canvas.appendChild(node);
+                nodeElements.push(node);
+            });
+        }
+
+        function toggleView() {
+            isLinearView = !isLinearView;
+            const toggleBtn = document.getElementById('toggleView');
+            
+            if (isLinearView) {
+                toggleBtn.textContent = 'LINEAR';
+                const startX = 200;
+                const spacing = 200;
+                const y = 600;
+                
+                let pathData = '';
+                
+                nodeElements.forEach((node, i) => {
+                    const x = startX + (i * spacing);
+                    node.style.transition = 'left 1s cubic-bezier(0.16, 1, 0.3, 1), top 1s cubic-bezier(0.16, 1, 0.3, 1)';
+                    node.style.left = x + 'px';
+                    node.style.top = y + 'px';
+                    
+                    if (i === 0) {
+                        pathData = `M ${x} ${y}`;
+                    } else {
+                        pathData += ` L ${x} ${y}`;
+                    }
+                });
+                
+                pathElement.setAttribute('d', pathData);
+            } else {
+                toggleBtn.textContent = 'SPIRAL';
+                
+                const centerX = 800;
+                const centerY = 600;
+                const startRadius = 80;
+                const radiusGrowth = 100;
+                const angleIncrement = Math.PI * 0.8;
+                
+                let pathData = '';
+                
+                nodeElements.forEach((node, i) => {
+                    const angle = i * angleIncrement;
+                    const radius = startRadius + (i * radiusGrowth);
+                    const x = centerX + radius * Math.cos(angle);
+                    const y = centerY + radius * Math.sin(angle);
+                    
+                    node.style.left = x + 'px';
+                    node.style.top = y + 'px';
+                    
+                    if (i === 0) {
+                        pathData = `M ${x} ${y}`;
+                    } else {
+                        pathData += ` L ${x} ${y}`;
+                    }
+                });
+                
+                pathElement.setAttribute('d', pathData);
+            }
+        }
+
+        document.getElementById('toggleView').addEventListener('click', toggleView);
+
+        document.getElementById('zoomIn').addEventListener('click', () => {
+            zoomLevel = Math.min(zoomLevel + 0.2, 3);
+            updateZoom();
+        });
+
+        document.getElementById('zoomOut').addEventListener('click', () => {
+            zoomLevel = Math.max(zoomLevel - 0.2, 0.1);
+            updateZoom();
+        });
+
+        document.getElementById('resetView').addEventListener('click', () => {
+            zoomLevel = 1;
+            translateX = 0;
+            translateY = 0;
+            canvas.style.transform = 'translate(-50%, -50%) scale(1)';
+            updateZoomDisplay();
+        });
+
+        function updateZoom() {
+            canvas.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${zoomLevel})`;
+            updateZoomDisplay();
+        }
+
+        function updateZoomDisplay() {
+            document.getElementById('zoomLevel').textContent = Math.round(zoomLevel * 100) + '%';
+        }
+
+        const container = document.getElementById('spiralContainer');
+
+        container.addEventListener('mousedown', (e) => {
+            if (e.target.closest('.timeline-node')) return;
+            isDragging = true;
+            startX = e.pageX - translateX;
+            startY = e.pageY - translateY;
+            container.style.cursor = 'grabbing';
+        });
+
+        container.addEventListener('mousemove', (e) => {
+            if (!isDragging) return;
+            e.preventDefault();
+            translateX = e.pageX - startX;
+            translateY = e.pageY - startY;
+            canvas.style.transform = `translate(calc(-50% + ${translateX}px), calc(-50% + ${translateY}px)) scale(${zoomLevel})`;
+        });
+
+        container.addEventListener('mouseup', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.addEventListener('mouseleave', () => {
+            isDragging = false;
+            container.style.cursor = 'grab';
+        });
+
+        container.style.cursor = 'grab';
+
+        container.addEventListener('wheel', (e) => {
+            e.preventDefault();
+            if (e.deltaY < 0) {
+                zoomLevel = Math.min(zoomLevel + 0.1, 3);
+            } else {
+                zoomLevel = Math.max(zoomLevel - 0.1, 0.1);
+            }
+            updateZoom();
+        }, { passive: false });
+
+        function openDetail(index) {
+            const data = timelineData[index];
+            
+            let detailHTML = '';
+            
+            // 1648年的内容
+            if (index === 0) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1648</div>
+                            <h2 class="section-title">The Accidental Emoticon</h2>
+                            <p class="section-text">
+                                A dedicated poetry reader appears to have spotted a smiley face in a poem from 1648, a discovery that would extend the prehistory of emojis by about 200 years. The University of Chicago press publicity manager Levy Stahl, when reading the poems of Robert Herrick, noticed that "To Fortune" — the second line in this poem has a very unusual typography.
+                            </p>
+                            <p class="section-text">
+                                English professor Alan Jacobs raised an objection: "In an age of Herrick, it is not without using parentheses in poetry — but they are not so widely used as we use today and in different circumstances," Jacobs said. In the 17th century, punctuation was generally unstable — as unstable as spelling: Shakespeare spelled his name several different ways — and there were no universally accepted rules.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "It is unlikely that Herrick himself had consistent habits of punctuality, and even if he did, he could not expect his printers or readers to share them."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Context</div>
+                            <h2 class="section-title">The Era of Unstable Typography</h2>
+                            <p class="section-text">
+                                The 17th century was a time when the rules of typography and punctuation were still being established. What appears to modern eyes as an intentional emoticon may simply have been a printing convention or accident of the era. Yet the discovery raises fascinating questions about the origins of visual communication in text.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1648</div>
+                                <div class="fact-description">Possible earliest emoticon</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">200 years</div>
+                                <div class="fact-description">Extended emoji prehistory</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">17th C</div>
+                                <div class="fact-description">Era of unstable punctuation</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1862年的内容
+            else if (index === 1) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1862</div>
+                            <h2 class="section-title">Lincoln's Mysterious Parenthesis</h2>
+                            <p class="section-text">
+                                Abraham Lincoln's 1862 speech recorded an unusual notation: "(applause and laughter)." This simple mark in the transcript has sparked debate among historians and linguists for years. Was it merely a transcription note, a typographical error, or could it have been the first documented emoticon?
+                            </p>
+                            <p class="section-text">
+                                People have debated whether this symbol in Lincoln's speech was a typing error, a legitimate punctuation structure, or the first emoticon. The question touches on the nature of written communication and how we document human emotion in text.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "Linguist Philip Seargeant believes this was simply a typographical error."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Debate</div>
+                            <h2 class="section-title">Error or Innovation?</h2>
+                            <p class="section-text">
+                                The debate continues: was Lincoln's transcriber capturing something intentional, or was this merely a clerical notation? While linguist Philip Seargeant argues for the simpler explanation of a typographical error, others see it as an early attempt to represent audience reaction in written form — a precursor to our modern need to express emotion through text.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1862</div>
+                                <div class="fact-description">Lincoln's speech transcript</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">( )</div>
+                                <div class="fact-description">The mysterious notation</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">?</div>
+                                <div class="fact-description">Error or emoticon?</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1834年的内容
+            else if (index === 2) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1834 — 1835</div>
+                            <h2 class="section-title">The Rebellious Pear</h2>
+                            <p class="section-text">
+                                The July Revolution of 1830 brought Louis-Philippe, the "King of the French People," to power, and he subsequently proclaimed freedom of the press. Artist and journalist Charles Philipon gathered a group of outstanding artists and founded the satirical weekly "La Caricature" in 1831.
+                            </p>
+                            <p class="section-text">
+                                In his publication, Philipon published a portrait of the king that transformed in four stages into a rotten "pear head" (poire), which is also French slang meaning "fool" or "idiot." Philipon was dragged to court, but according to legend, he avoided imprisonment by demonstrating to the jury through sketches the resemblance between the king and a pear. He was acquitted of libel charges — a victory for the cause of satire that would spark further mockery.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "No painting, engraving, lithograph, medal, print or emblem of any kind may be published, exhibited or sold without the prior authorization of the Minister of the Interior in Paris or the prefect of the province."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Resistance</div>
+                            <h2 class="section-title">Typography as Rebellion</h2>
+                            <p class="section-text">
+                                After surviving the "Les Poires" lawsuit, Charles Philipon founded an even more savage satirical newspaper called "Charivari" in 1832. "Les Poires" became a symbol of resistance to authority, appearing in as many offensive variations as possible in Philipon's newspapers.
+                            </p>
+                            <p class="section-text">
+                                When Louis-Philippe banned the drawing of related images, it appeared in further variations formed by typographic arrangements — a remarkable feat, as they were hand-set in metal type — thereby circumventing the ban or decree. Once again, satire went too far. In September 1835, the entire French free media was subjected to censorship on political topics.
+                            </p>
+                            <p class="section-text">
+                                On August 27, 1835, Philipon printed three typographic pears on the last page of the final issue of "La Caricature," fittingly ending this chapter in publishing history. The text of "The Pear," titled "Other Fruits of the July Revolution," consisted of the new September Laws regarding printed images.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1830</div>
+                                <div class="fact-description">July Revolution</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">1831</div>
+                                <div class="fact-description">La Caricature founded</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">1835</div>
+                                <div class="fact-description">Media censorship enacted</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1881年的内容
+            else if (index === 3) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1881</div>
+                            <h2 class="section-title">Typographic Art Emerges</h2>
+                            <p class="section-text">
+                                On March 5, 1881, "Typographic Art" was published in the Kurjer Warszawski magazine, marking an early exploration of using typography to create visual expressions. Just weeks later, on March 30, 1881, the satirical magazine Puck published four emoticons known as "typographic art."
+                            </p>
+                            <p class="section-text">
+                                These were called "vertical emoticons" because they were oriented vertically rather than horizontally. This marked one of the first intentional uses of punctuation marks and typographic characters to create facial expressions in print, predating the digital emoticon era by over a century.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "They were called vertical emoticons because they were vertical, not horizontal."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Innovation</div>
+                            <h2 class="section-title">The Birth of Intentional Expression</h2>
+                            <p class="section-text">
+                                Unlike the accidental or debated emoticons of earlier centuries, the Puck magazine emoticons represented a deliberate effort to use typography as a form of visual communication. This was typography not merely serving text, but becoming its own expressive medium — a radical idea for the 19th century.
+                            </p>
+                            <p class="section-text">
+                                The publication in both a Polish magazine and an American satirical weekly within the same month suggests that the idea of typographic expression was emerging simultaneously across different cultures, hinting at a universal human desire to add emotional dimension to the written word.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">Mar 5</div>
+                                <div class="fact-description">Kurjer Warszawski publication</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">Mar 30</div>
+                                <div class="fact-description">Puck magazine emoticons</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">4</div>
+                                <div class="fact-description">Vertical emoticons created</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1912年的内容
+            else if (index === 4) {
+                detailHTML = `
+                    <div class="detail-body" style="padding-top: 120px;">
+                        <div class="detail-section">
+                            <div class="section-label">1912</div>
+                            <h2 class="section-title">For Brevity and Clarity</h2>
+                            <p class="section-text">
+                                In an article titled "For Brevity and Clarity" in 1912, American writer Ambrose Bierce humorously proposed that a bracket could be used to represent a smiling face. He suggested "an improvement in punctuation" that writers could use to convey laughter, loud or uncontrolled laughing.
+                            </p>
+                            <p class="section-text">
+                                Bierce described it as: "It is written thus ‿ and presents a smiling mouth. It should be appended to every jocular or ironical sentence." This playful proposal represented an early recognition that written language needed new tools to convey tone and emotion — a problem that would persist throughout the history of text-based communication.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "It is written thus ‿ and presents a smiling mouth. It should be appended to every jocular or ironical sentence."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Context</div>
+                            <h2 class="section-title">The Writer's Dilemma</h2>
+                            <p class="section-text">
+                                Bierce's proposal, though humorous in tone, touched on a genuine challenge writers faced: how to ensure that humor and irony were properly understood in written form. Without vocal tone or facial expression, written jokes could easily be misunderstood as serious statements. His solution — a typographic mark specifically for indicating humor — anticipated the emoticon revolution by 70 years.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1912</div>
+                                <div class="fact-description">Bierce's proposal</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">‿</div>
+                                <div class="fact-description">The smiling bracket</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">70 yrs</div>
+                                <div class="fact-description">Before digital emoticons</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1936年的内容
+            else if (index === 5) {
+                detailHTML = `
+                    <div class="detail-body" style="padding-top: 120px;">
+                        <div class="detail-section">
+                            <div class="section-label">1936</div>
+                            <h2 class="section-title">Harvard Lampoon's System</h2>
+                            <p class="section-text">
+                                In an article in the Harvard Lampoon in 1936, writer Alan Gregg proposed combining brackets with various other punctuation marks to represent different emotions. The brackets represented the sides of the mouth or cheeks, and other punctuation marks were used between the brackets to express various emotions.
+                            </p>
+                            <p class="section-text">
+                                Gregg's system included: (-) for a smile, (-) for laughter, (#) for a frown, and (*) for a wink. This systematic approach to typographic emotion was remarkably sophisticated, creating a complete vocabulary of facial expressions using only standard punctuation marks available on any typewriter.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "(-) smile · (-) laugh · (#) frown · (*) wink"
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Innovation</div>
+                            <h2 class="section-title">A Complete Emotional System</h2>
+                            <p class="section-text">
+                                Unlike previous proposals that focused on a single expression, Gregg's system offered a complete range of emotions. By establishing the bracket as a consistent framework and varying the internal punctuation, he created what could be considered the first systematic approach to typographic emotional expression. This methodology would influence the design of emoticons decades later.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1936</div>
+                                <div class="fact-description">Harvard Lampoon article</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">4</div>
+                                <div class="fact-description">Different emotions</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">( )</div>
+                                <div class="fact-description">The bracket system</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1962年的内容
+            else if (index === 6) {
+                detailHTML = `
+                    <div class="detail-body" style="padding-top: 120px;">
+                        <div class="detail-section">
+                            <div class="section-label">1962</div>
+                            <h2 class="section-title">Typewriter Cartoons</h2>
+                            <p class="section-text">
+                                In September 1962, the American humor magazine MAD published an article titled "Typewriter Cartoons." This work, created entirely on a typewriter and called "Royal Portable," was composed entirely of repurposed typography — a playful exploration of giving personality to letters and punctuation marks.
+                            </p>
+                            <p class="section-text">
+                                The piece featured creative typographic characters: a capital P bust being larger than a capital I, lowercase b and d discussing their pregnancy, an asterisk above a letter indicating that the letter had just come in from the snow, and a lowercase n being interrupted by a lowercase h "raising its hand."
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "Royal Portable" — when typewriter characters became personalities
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Context</div>
+                            <h2 class="section-title">Typography as Character</h2>
+                            <p class="section-text">
+                                This MAD magazine feature represented something new: not just using typography to express human emotion, but treating the letters and symbols themselves as characters with personalities, relationships, and narratives. It was typography becoming anthropomorphic, a precursor to how we would later imbue simple punctuation marks with human expression in the digital age.
+                            </p>
+                            <p class="section-text">
+                                The "Royal Portable" piece demonstrated that even within the constraints of a typewriter's limited character set, creative expression was boundless. Each letter became a potential actor in a visual story, foreshadowing the playful creativity that would define emoji culture decades later.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1962</div>
+                                <div class="fact-description">MAD magazine publication</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">Sept</div>
+                                <div class="fact-description">September issue</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">Pb*</div>
+                                <div class="fact-description">Typewriter art characters</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1967年的内容
+            else if (index === 7) {
+                detailHTML = `
+                    <div class="detail-body" style="padding-top: 120px;">
+                        <div class="detail-section">
+                            <div class="section-label">1967 — 1969</div>
+                            <h2 class="section-title">Nabokov's Vision</h2>
+                            <p class="section-text">
+                                In 1967, an article in Reader's Digest featured a Baltimore Sunday Sun columnist who used a dash and right parenthesis to represent tongue in someone's cheek: :-). This casual usage appeared years before the symbol would become standardized in digital communication.
+                            </p>
+                            <p class="section-text">
+                                Two years later, in 1969, the renowned writer Vladimir Nabokov presaged the emergence of the modern "smiley" emoticon. In an interview with The New York Times, he expressed a thought that would prove remarkably prescient: "I often think there should exist a special typographical sign for a smile — some sort of concave mark, a supine round bracket, which I would now like to trace in answer to your question."
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "I often think there should exist a special typographical sign for a smile — some sort of concave mark, a supine round bracket."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Prescience</div>
+                            <h2 class="section-title">A Writer's Intuition</h2>
+                            <p class="section-text">
+                                Nabokov's observation touched on a fundamental challenge of written communication: how to convey tone and emotion without the benefit of facial expressions or vocal inflection. His proposed "supine round bracket" — essentially a sideways parenthesis — anticipated the exact form that emoticons would take just over a decade later.
+                            </p>
+                            <p class="section-text">
+                                What's remarkable is that Nabokov, one of the 20th century's greatest prose stylists, recognized that even the most sophisticated writing sometimes needed a simple typographic mark to clarify emotional intent. His vision acknowledged that written language, despite its power, had inherent limitations that could be addressed through visual innovation.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1967</div>
+                                <div class="fact-description">Reader's Digest usage</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">1969</div>
+                                <div class="fact-description">Nabokov's interview</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">:-)</div>
+                                <div class="fact-description">The supine bracket</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1972年的内容
+            else if (index === 8) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1972</div>
+                            <h2 class="section-title">PLATO IV Pictographs</h2>
+                            <p class="section-text">
+                                In the 1970s, the PLATO IV computer system emerged. It was one of the first computers used in educational and professional institutions, though rarely in home environments. On this computer system, a student at the University of Illinois developed pictographs resembling different smiley faces.
+                            </p>
+                            <p class="section-text">
+                                Mary Kalantzis and Bill Cope suggest this may have occurred in 1972, and they claim this was the first emoticon. The student's creations may have spanned multiple timelines, encompassing computer icons, digital pictographs, and emoticon creation. However, because these pictographs were not focused on providing a means of communication, they are generally not considered significant in emoticon history.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "The pictographs were not focused on providing a means of communication."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Context</div>
+                            <h2 class="section-title">The Missing Link</h2>
+                            <p class="section-text">
+                                The PLATO IV system represented an important technological bridge between the typewriter era and the digital communication age. While the smiley pictographs created on this system technically preceded Fahlman's 1982 emoticons, they served a different purpose. These were graphical elements — actual pictures — rather than the text-based combinations that would define the emoticon era.
+                            </p>
+                            <p class="section-text">
+                                The distinction is crucial: emoticons succeeded because they used only standard keyboard characters, making them universally accessible. The PLATO IV pictographs, while visually sophisticated, required special graphics capabilities. They represented what emoticons could look like, but not yet how they would function in everyday digital communication.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1972</div>
+                                <div class="fact-description">Possible creation date</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">PLATO IV</div>
+                                <div class="fact-description">Educational computer system</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">☺</div>
+                                <div class="fact-description">Graphical pictographs</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1977年的内容
+            else if (index === 9) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1977</div>
+                            <h2 class="section-title">I ❤️ New York</h2>
+                            <p class="section-text">
+                                In 1977, the iconic "I Love New York" advertising campaign introduced a revolutionary use of the heart symbol. For perhaps the first time in a major commercial context, a heart symbol was used as an integral part of an English sentence, replacing the word "love" entirely.
+                            </p>
+                            <p class="section-text">
+                                This wasn't just typography or punctuation — it was a symbol functioning as a word, a concept that would become fundamental to how we communicate digitally. The campaign's success demonstrated that visual symbols could convey meaning more powerfully than words alone, anticipating the emoji revolution by decades.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "I ❤️ NY" — when a symbol became a verb
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Impact</div>
+                            <h2 class="section-title">Symbol as Language</h2>
+                            <p class="section-text">
+                                The "I ❤️ NY" campaign, designed by Milton Glaser, became one of the most recognizable logos in history. But its significance goes beyond branding — it established a precedent for using symbols as functional parts of language. The heart wasn't decorative; it was grammatical. It had a meaning, a pronunciation, a place in the sentence structure.
+                            </p>
+                            <p class="section-text">
+                                This concept — that a simple visual symbol could replace a word and be universally understood — would become the foundation of emoji culture. When we text "I ❤️ pizza" today, we're directly descended from this 1977 innovation that proved symbols could be read as seamlessly as words.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1977</div>
+                                <div class="fact-description">Campaign launched</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">❤️</div>
+                                <div class="fact-description">Symbol as word</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">∞</div>
+                                <div class="fact-description">Cultural influence</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1980年的内容
+            else if (index === 10) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1980</div>
+                            <h2 class="section-title">The ASCII Art Era</h2>
+                            <p class="section-text">
+                                The widespread use of ASCII art can be traced back to the late 1970s and early 1980s computer bulletin board systems (BBS). Due to the limitations of computers at that time, text characters had to be used to represent images. However, as ASCII became used in communication, it also began to appear in underground network art groups of the period.
+                            </p>
+                            <p class="section-text">
+                                ASCII comics were a form of webcomic that used ASCII text to create images. In regular comics, ASCII art was used instead of images, with text or dialogue typically placed below. This constraint-driven creativity laid the groundwork for how people would later express themselves through simple text characters.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "Due to computer limitations, text characters became our canvas."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Legacy</div>
+                            <h2 class="section-title">Art From Limitation</h2>
+                            <p class="section-text">
+                                In the 1990s, graphical browsing and variable-width fonts became increasingly popular, leading to the decline of ASCII art. Nevertheless, ASCII art survived through online MUDs (Multi-User Dungeons), Internet Relay Chat, email, message boards, and other forms of online communication that typically use fixed-width fonts.
+                            </p>
+                            <p class="section-text">
+                                The ASCII era proved that creativity flourishes within constraints. When you can only use the characters on a keyboard, every expression becomes an act of invention. This mindset — making art from limitation — would define the entire emoticon and emoji movement.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">BBS</div>
+                                <div class="fact-description">Bulletin Board Systems</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">ASCII</div>
+                                <div class="fact-description">Text-based art</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">MUD</div>
+                                <div class="fact-description">Multi-User Dungeons</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1982年的内容 - 这是最重要的节点！
+            else if (index === 11) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">September 19, 1982</div>
+                            <h2 class="section-title">Fahlman's Revolution</h2>
+                            <p class="section-text">
+                                In 1982, computer scientist Scott Fahlman at Carnegie Mellon University invented text-based digital emoticons. The university's bulletin board system (BBS) was a forum where students and teachers discussed various topics, and jokes often led to misunderstandings.
+                            </p>
+                            <p class="section-text">
+                                In response to the difficulty of expressing humor or irony in plain text, Fahlman proposed using colon-hyphen-right parenthesis :-) as a marker for "attempting humor." The use of ASCII symbols — a set of standard codes representing typographic marks — was essential for allowing these symbols to display on any computer.
+                            </p>
+                            <p class="section-text">
+                                After a humorous warning about elevator mercury leakage was misunderstood as a serious incident, Fahlman sent his historic message. Other suggestions on the forum included asterisks * and & to indicate someone laughing, and the percent % and pound # symbols. Within months, the smiley spread to ARPANET and Usenet.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "I propose :-) for jokes and :-( for serious matters."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Significance</div>
+                            <h2 class="section-title">Why Fahlman Was Different</h2>
+                            <p class="section-text">
+                                Many before Fahlman had either drawn faces with letter symbols or created digital pictographs. Scott Fahlman went further by proposing that his emoticons could not only convey emotions but also replace language. The use of emoticons as a form of communication is why Fahlman is regarded as the creator of emoticons, rather than other earlier claims.
+                            </p>
+                            <p class="section-text">
+                                Since the 1990s, emoticons (colon, hyphen, and parenthesis) have become an integral part of digital communication and have inspired various other emoticons, including the "winking" face using a semicolon ;-), the "surprised" face using the letter o instead of parenthesis :-o, and XD, a visual representation of tears of joy or the acronym LOL.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">9/19/82</div>
+                                <div class="fact-description">The historic day</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">:-)</div>
+                                <div class="fact-description">The original emoticon</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">CMU</div>
+                                <div class="fact-description">Carnegie Mellon University</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1986年的内容
+            else if (index === 12) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1986</div>
+                            <h2 class="section-title">Kaomoji is Born</h2>
+                            <p class="section-text">
+                                Kaomoji is a method invented in Japan in the 1980s for depicting emoticons using ASCII characters. It developed independently from the emoticon movement initiated by Scott Fahlman in the United States during the same decade. Kaomojis remain the most commonly used emoticons or emojis in Japan.
+                            </p>
+                            <p class="section-text">
+                                Unlike Western emoticons which are read sideways (:-)), Kaomoji are viewed right-side up (^_^). This fundamental difference reflects distinct cultural approaches to visual communication, with Japanese Kaomoji often being more elaborate and expressive, using a wider range of characters to convey nuanced emotions.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "(^_^) — emoticons that look you in the eye"
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Cultural Difference</div>
+                            <h2 class="section-title">East Meets West</h2>
+                            <p class="section-text">
+                                The parallel evolution of Western emoticons and Japanese Kaomoji demonstrates how different cultures independently arrived at similar solutions for the same problem: expressing emotion in text. While Western emoticons focused on simplicity and the mouth (the key to reading emotion in Western faces), Kaomoji emphasized the eyes (more important in Japanese emotional expression) and allowed for more complex combinations.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1980s</div>
+                                <div class="fact-description">Emerged in Japan</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">(^_^)</div>
+                                <div class="fact-description">Upright style</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">JP</div>
+                                <div class="fact-description">Most popular in Japan</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            // 1990年的内容
+            else if (index === 13) {
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">1990</div>
+                            <h2 class="section-title">Wingdings Font</h2>
+                            <p class="section-text">
+                                Wingdings is a font invented by Charles Bigelow and Kris Holmes, released by Microsoft in 1990. It could be used to send pictographs in rich text messages, but could only be loaded on devices with the Wingdings font installed.
+                            </p>
+                            <p class="section-text">
+                                This limitation highlighted a crucial challenge in digital communication: for symbols to truly function as a universal language, they needed to be standardized and accessible across all devices. Wingdings offered a glimpse of what emoji could be, but its proprietary nature meant it could never achieve universal adoption.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "✦ A beautiful solution to the wrong problem"
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">The Problem</div>
+                            <h2 class="section-title">Beautiful But Broken</h2>
+                            <p class="section-text">
+                                Wingdings represented a paradox: it offered hundreds of symbols more sophisticated than simple ASCII emoticons, but required both sender and receiver to have the same font installed. This made it useless for universal communication. The lesson was clear: for symbols to work as language, they needed to be part of a universal standard, not a proprietary font. This insight would prove crucial for the eventual success of Unicode emoji.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">1990</div>
+                                <div class="fact-description">Microsoft release</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">✦✿✈</div>
+                                <div class="fact-description">Pictograph symbols</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">⚠️</div>
+                                <div class="fact-description">Limited compatibility</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            } else {
+                // 其他节点的占位内容
+                detailHTML = `
+                    <div class="detail-hero">
+                        ${data.image ? `<img src="${data.image}" class="detail-hero-bg" alt="${data.title}">` : ''}
+                        <div class="scroll-indicator">↓ SCROLL</div>
+                    </div>
+                    
+                    <div class="detail-body">
+                        <div class="detail-section">
+                            <div class="section-label">Overview</div>
+                            <h2 class="section-title">The Beginning</h2>
+                            <p class="section-text">
+                                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                            </p>
+                            <p class="section-text">
+                                Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.
+                            </p>
+                        </div>
+
+                        <div class="quote-block">
+                            "This was a turning point in the history of digital communication."
+                        </div>
+
+                        <div class="detail-section">
+                            <div class="section-label">Impact</div>
+                            <h2 class="section-title">Cultural Significance</h2>
+                            <p class="section-text">
+                                Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua.
+                            </p>
+                        </div>
+
+                        <div class="detail-facts-grid">
+                            <div class="fact-box">
+                                <div class="fact-number">${data.year}</div>
+                                <div class="fact-description">Year of introduction</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">∞</div>
+                                <div class="fact-description">Global impact</div>
+                            </div>
+                            <div class="fact-box">
+                                <div class="fact-number">100M+</div>
+                                <div class="fact-description">People affected</div>
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }
+            
+            document.getElementById('detailContent').innerHTML = detailHTML;
+            document.getElementById('detailPage').classList.add('active');
+            document.body.classList.add('detail-open');
+            
+            // 切换到emoji光标
+            cursor.classList.add('hidden');
+            emojiCursor.classList.add('active');
+            
+            // 开始emoji闪烁变化
+            currentEmojiIndex = 0;
+            emojiCursor.textContent = emojis[currentEmojiIndex];
+            emojiInterval = setInterval(() => {
+                currentEmojiIndex = (currentEmojiIndex + 1) % emojis.length;
+                emojiCursor.textContent = emojis[currentEmojiIndex];
+            }, 500);
+        }
+
+        document.getElementById('closeDetail').addEventListener('click', () => {
+            document.getElementById('detailPage').classList.remove('active');
+            document.body.classList.remove('detail-open');
+            
+            // 切换回普通光标
+            cursor.classList.remove('hidden');
+            emojiCursor.classList.remove('active');
+            if (emojiInterval) {
+                clearInterval(emojiInterval);
+            }
+        });
+
+        const cursor = document.querySelector('.cursor');
+        const emojiCursor = document.getElementById('emojiCursor');
+        
+        const emojis = ['😊', '😂', '❤️', '👍', '🎉', '✨', '🔥', '💯', '🌟', '⭐', '💫', '🎨', '📱', '💬', '✉️'];
+        let currentEmojiIndex = 0;
+        let emojiInterval;
+        
+        // 彩虹选中效果
+        const selectionColors = ['#ff00ff', '#00ff00', '#ff0000', '#0000ff'];
+        let colorIndex = 0;
+        
+        function updateSelectionColor() {
+            const style = document.createElement('style');
+            style.id = 'dynamic-selection';
+            const oldStyle = document.getElementById('dynamic-selection');
+            if (oldStyle) {
+                oldStyle.remove();
+            }
+            style.textContent = `
+                ::selection {
+                    background: ${selectionColors[colorIndex]};
+                    color: #fff;
+                }
+                ::-moz-selection {
+                    background: ${selectionColors[colorIndex]};
+                    color: #fff;
+                }
+            `;
+            document.head.appendChild(style);
+            colorIndex = (colorIndex + 1) % selectionColors.length;
+        }
+        
+        // 每500ms更新选中颜色
+        setInterval(updateSelectionColor, 500);
+        updateSelectionColor();
+        
+        document.addEventListener('mousemove', (e) => {
+            cursor.style.left = e.clientX + 'px';
+            cursor.style.top = e.clientY + 'px';
+            emojiCursor.style.left = e.clientX + 'px';
+            emojiCursor.style.top = e.clientY + 'px';
+        });
+
+        document.addEventListener('mouseover', (e) => {
+            if (e.target.closest('button, .timeline-node')) {
+                cursor.classList.add('hover');
+                emojiCursor.classList.add('hover');
+            } else {
+                cursor.classList.remove('hover');
+                emojiCursor.classList.remove('hover');
+            }
+        });
+
+        generateSpiral();
+    </script>
+</body>
+</html>
