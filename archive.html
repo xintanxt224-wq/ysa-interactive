@@ -1,0 +1,1627 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Joss Paper - Are.na 档案</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', sans-serif;
+      background-color: #ffffff;
+      color: #333;
+    }
+
+    .info-panel {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      background: white;
+      z-index: 1000;
+      border-top: 1px solid #000;
+      border-bottom: 1px solid #000;
+      max-height: 33.33vh;
+      overflow: hidden;
+    }
+
+    .info-container {
+      display: flex;
+      max-width: 100%;
+      height: 100%;
+    }
+
+    .info-english {
+      padding: 20px 30px;
+      border-right: 1px solid #000;
+      display: flex;
+      flex-direction: column;
+      gap: 0;
+      flex: 1;
+      overflow-y: auto;
+      min-width: 0;
+    }
+
+    .info-english-line {
+      font-size: 0.9em;
+      font-weight: 300;
+      line-height: 1.4;
+      border-bottom: 1px solid #000;
+      padding: 8px 0;
+      letter-spacing: 0.02em;
+      word-wrap: break-word;
+      white-space: normal;
+    }
+
+    .info-chinese {
+      padding: 15px 5px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: flex-end;
+      gap: 0;
+      flex-wrap: wrap;
+      overflow: visible;
+      border-left: 1px solid #000;
+      align-content: flex-start;
+      max-width: 40%;
+      max-height: calc(33.33vh - 20px);
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
+
+    .info-chinese-column {
+      display: flex;
+      flex-direction: row;
+      align-items: stretch;
+      padding: 3px;
+      flex-shrink: 0;
+      min-height: 30px;
+    }
+
+    .info-chinese-column:first-child {
+      border-right: 1px solid #000;
+      padding-right: 3px;
+    }
+
+    .info-chinese-column:not(:first-child) {
+      padding-left: 3px;
+    }
+
+    .info-chinese-text {
+      writing-mode: vertical-rl;
+      text-orientation: upright;
+      font-size: 0.85em;
+      font-weight: 300;
+      line-height: 1.6;
+      letter-spacing: 0.03em;
+      color: #333;
+      display: flex;
+      gap: 0;
+    }
+
+    .chinese-char {
+      border-right: 1px solid #000;
+      padding: 0 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .chinese-char:last-child {
+      border-right: none;
+      padding-right: 6px;
+    }
+
+    .gallery-controls {
+      position: fixed;
+      bottom: 0;
+      left: 0;
+      right: 0;
+      z-index: 999;
+      padding: 20px;
+      background: white;
+      border-top: 1px solid #000;
+      display: flex;
+      gap: 15px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+
+    .category-filter {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+    }
+
+    .category-btn {
+      padding: 8px 16px;
+      border: 1px solid #000;
+      background: white;
+      cursor: pointer;
+      font-size: 0.9em;
+      font-weight: 300;
+      transition: all 0.3s ease;
+      color: #333;
+      letter-spacing: 0.02em;
+    }
+
+    .category-btn:hover {
+      opacity: 0.8;
+    }
+
+    .category-btn.active {
+      border: 1px solid #000;
+      color: #000;
+      font-weight: 300;
+    }
+
+    .gallery {
+      width: 100%;
+      padding: 20px;
+      padding-top: calc(33.33vh + 40px);
+      padding-bottom: 100px;
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+      gap: 30px;
+      margin-top: 0;
+      background: white;
+    }
+
+    .gallery-item {
+      aspect-ratio: 1;
+      overflow: hidden;
+      border-radius: 0px;
+      cursor: pointer;
+      background: #ffffff;
+      position: relative;
+      border: none;
+    }
+
+    .gallery-item-image {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+    }
+
+    .lightbox {
+      display: none;
+      position: fixed;
+      top: calc(33.33vh + 1px);
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: white;
+      z-index: 2000;
+      overflow: auto;
+    }
+
+    .lightbox.active {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox-content {
+      position: relative;
+      width: 100%;
+      height: 100%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .lightbox-image {
+      max-width: 100%;
+      max-height: 100%;
+      object-fit: contain;
+    }
+
+    .lightbox-close {
+      position: fixed;
+      top: calc(33.33vh + 20px);
+      right: 20px;
+      z-index: 2001;
+      width: 40px;
+      height: 40px;
+      background: white;
+      border: 1px solid #000;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 24px;
+      font-weight: 300;
+      color: #000;
+      transition: all 0.3s ease;
+    }
+
+    .lightbox-close:hover {
+      background: #f0f0f0;
+    }
+
+    .lightbox-close.active {
+      display: flex;
+    }
+
+    .footer {
+      text-align: center;
+      padding: 40px;
+      color: #999;
+      font-size: 0.85em;
+      border-top: 1px solid #e0e0e0;
+      letter-spacing: 0.05em;
+    }
+
+    .footer a {
+      color: #0066cc;
+      text-decoration: none;
+    }
+
+    .footer a:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <div class="info-panel">
+    <div class="info-container">
+      <div class="info-english" id="infoEnglish"></div>
+      <div class="info-chinese" id="infoChinese"></div>
+    </div>
+  </div>
+
+  <div class="lightbox" id="lightbox">
+    <div class="lightbox-content">
+      <img class="lightbox-image" id="lightboxImage" src="" alt="Enlarged image">
+    </div>
+  </div>
+
+  <button class="lightbox-close" id="lightboxClose" style="display: none;">✕</button>
+
+  <div class="gallery" id="gallery"></div>
+
+  <div class="footer">
+    <p>JOSS PAPER ARCHIVE | POWERED BY <a href="https://www.are.na" target="_blank">ARE.NA</a></p>
+  </div>
+
+  <div class="gallery-controls">
+    <span style="font-weight: 500;">CATEGORY:</span>
+    <div class="category-filter" id="categoryFilter">
+      <button class="category-btn active" data-category="all">ALL</button>
+    </div>
+  </div>
+
+  <script>
+    const itemsDataDict = {
+  "40739433": {
+    "number_en": 2,
+    "title_en": "Boy and Girl",
+    "desc_en": "Representing virgin boys and girls, commonly used in rituals to signify purity and convey devout prayers and blessings to the deities.",
+    "number_cn": "二",
+    "title_cn": "童男童女",
+    "desc_cn": "象征童贞的男孩和女孩，常用作祭祀用品，寓意纯洁无瑕，寄托对神灵的虔诚祈求与祝福。",
+    "category_cn": "一路走好",
+    "category_en": "Farewell & Blessings",
+    "block": "40739433"
+  },
+  "40739441": {
+    "number_en": 3,
+    "title_en": "Golden Boy and Jade Girl",
+    "desc_en": "Mythological figures symbolizing purity and beauty, often seen in weddings and ceremonies, representing happiness and divine protection.",
+    "number_cn": "三",
+    "title_cn": "金童玉女",
+    "desc_cn": "传说中的神话人物，通常代表纯洁与美好，常见于婚礼和祭祀中，象征幸福和神圣的庇护。",
+    "category_cn": "一路走好",
+    "category_en": "Farewell & Blessings",
+    "block": "40739441"
+  },
+  "40739380": {
+    "number_en": 4,
+    "title_en": "Big Yellow Cow",
+    "desc_en": "A large yellow cow symbolizing wealth and strength, regarded in agricultural societies as a representation of harvest and hard work, often used in ceremonies.",
+    "number_cn": "四",
+    "title_cn": "大黄牛",
+    "desc_cn": "大型黄牛，象征财富与力量，在农业社会中被视为丰收和勤劳的象征，用于祭祀典礼。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739380"
+  },
+  "40739332": {
+    "number_en": 5,
+    "title_en": "Five-Colored Horse",
+    "desc_en": "Five horses of different colors representing the five elements and harmony, symbolizing balance between heaven and earth, often seen in blessings and festivals.",
+    "number_cn": "五",
+    "title_cn": "五色马",
+    "desc_cn": "五种不同颜色的马，代表五行和和谐，寓意天地平衡，常见于祈福仪式和庆典活动中。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739332"
+  },
+  "40739333": {
+    "number_en": 8,
+    "title_en": "Toll Money",
+    "desc_en": "Traditional 'road money' prepared for travelers, symbolizing safe passage, often used in funerary customs to ensure the smooth journey of the deceased.",
+    "number_cn": "八",
+    "title_cn": "买路钱",
+    "desc_cn": "为出行者准备的传统“过路钱”，寓意平安顺遂，常用于丧葬习俗中以确保亡灵顺利前行。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739333"
+  },
+  "40739371": {
+    "number_en": 9,
+    "title_en": "Great King Statue",
+    "desc_en": "A statue symbolizing authority and compassion, revered in religious beliefs as a protector of all beings, widely respected by devotees.",
+    "number_cn": "九",
+    "title_cn": "大士王",
+    "desc_cn": "大士王像，象征权威与慈悲，在宗教信仰中被视为护佑众生的存在，广受信众尊崇。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739371"
+  },
+  "40739420": {
+    "number_en": 11,
+    "title_en": "Firecrackers",
+    "desc_en": "Traditional fireworks used in celebrations or rituals, symbolizing the expulsion of evil spirits and prayers for blessings, a hallmark of festive events.",
+    "number_cn": "十一",
+    "title_cn": "花炮",
+    "desc_cn": "用于庆典或祭祀的传统烟花，象征驱邪祈福，增添喜庆气氛，是节庆活动的标志之一。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739420"
+  },
+  "40739422": {
+    "number_en": 12,
+    "title_en": "Spirit Tablet",
+    "desc_en": "A tablet used in ancestor worship, representing the spirits of ancestors, expressing remembrance and reverence, a key symbol in ancestral halls.",
+    "number_cn": "十二",
+    "title_cn": "灵位",
+    "desc_cn": "用于祭祀祖先的牌位，代表着祖先的灵魂，表达缅怀和敬意，是祠堂的象征。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739422"
+  },
+  "40739367": {
+    "number_en": 15,
+    "title_en": "Treasure Pot Money Tree",
+    "desc_en": "An ornate money tree symbolizing continuous wealth flow, a feng shui symbol for enhancing financial luck, often placed at home for blessings.",
+    "number_cn": "十五",
+    "title_cn": "宝囤摇钱树",
+    "desc_cn": "装饰华丽的摇钱树，寓意财富源源不断，是风水中提升财运的象征，常放在家中以求招财纳福。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739367"
+  },
+  "40739389": {
+    "number_en": 16,
+    "title_en": "Lotus Treasure Bowl",
+    "desc_en": "An exquisite lotus-shaped treasure bowl symbolizing prosperity and thriving business; the lotus signifies purity and peace, an auspicious item in Buddhism.",
+    "number_cn": "十六",
+    "title_cn": "莲花聚宝盆",
+    "desc_cn": "精美的莲花形状聚宝盆，象征财运亨通和生意兴隆，莲花寓意纯洁与祥和，是佛教中的吉祥之物。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739389"
+  },
+  "40739363": {
+    "number_en": 17,
+    "title_en": "Large Gold Ingots",
+    "desc_en": "A large golden ingot symbolizing wealth and good fortune, a traditional representation of prosperity, used in rituals and prayers.",
+    "number_cn": "十七",
+    "title_cn": "大号金元宝",
+    "desc_cn": "大号金色元宝，象征财富与好运，作为传统财富象征，寓意招财进宝，多用于祭祀和祈愿活动。",
+    "category_cn": "一路走好",
+    "category_en": "Farewell & Blessings",
+    "block": "40739363"
+  },
+  "40739348": {
+    "number_en": 18,
+    "title_en": "Underworld Passbook",
+    "desc_en": "A bank passbook for the underworld, recording wealth deposits, symbolizing financial security and reflecting the living's wishes for the deceased's comfort.",
+    "number_cn": "十八",
+    "title_cn": "冥府存折",
+    "desc_cn": "冥府专用的银行存折，记录在冥界的财富存款，象征财务保障，寄托子孙对祖先生活无忧的美好祝愿。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739348"
+  },
+  "40739354": {
+    "number_en": 19,
+    "title_en": "Underworld HKD",
+    "desc_en": "Special Hong Kong Dollar notes for transactions in the underworld, symbolizing a medium of wealth communication and care for the deceased.",
+    "number_cn": "十九",
+    "title_cn": "冥币港元",
+    "desc_cn": "冥府专用的港币纸币，专门用于冥界交易，象征与阴间沟通的财富媒介，体现对逝者生活的关注。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739354"
+  },
+  "40739446": {
+    "number_en": 25,
+    "title_en": "Gold Inscription",
+    "desc_en": "A gold artifact engraved with \"Wealth and Prosperity,\" symbolizing wealth and good fortune.",
+    "number_cn": "二五",
+    "title_cn": "金元宝",
+    "desc_cn": "传统的金元宝，象征着财富和好运，广泛用于祭祀和祈福，寄托人们对美好生活的期盼。",
+    "category_cn": "一路走好",
+    "category_en": "Farewell & Blessings",
+    "block": "40739446"
+  },
+  "40739457": {
+    "number_en": 29,
+    "title_en": "Leisurely Residence",
+    "desc_en": "The traditional three-story luxurious Chinese mansion is equipped with security guards, guard dogs, waiters and professional chefs. There is a big garden and a red carpet in front of the door.     ",
+    "number_cn": "二九",
+    "title_cn": "逍遥仙居",
+    "desc_cn": "传统三层楼华贵中式府邸，配备有安保、看门狗、服务员、专业厨师，门前设有大园、红地毯。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739457"
+  },
+  "40739436": {
+    "number_en": 30,
+    "title_en": "Leisurely Mansion",
+    "desc_en": "A luxurious mansion with a theater on the third floor, two ladies' rooms on the second, and security, luxury cars, and a garden on the first floor, offering both elegance and convenience.",
+    "number_cn": "三十",
+    "title_cn": "逍遥府",
+    "desc_cn": "豪华中式府邸，三楼设戏台，二楼有夫人房，一楼配保安、跑车及宽敞庭院，尽显尊贵气派。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739436"
+  },
+  "40739406": {
+    "number_en": 31,
+    "title_en": "Auspicious Clouds Villa",
+    "desc_en": "A luxurious residence with a large entrance courtyard, luxury car garage, two security guards at the gate, ladies' rooms on both the second and third fl\noors, and servants on the second floor.",
+    "number_cn": "三一",
+    "title_cn": "祥云别墅",
+    "desc_cn": "豪华府邸，配有超大入户庭院、豪车车库，门口设有两名保安，二、三楼均有夫人房，二楼有佣人。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739406"
+  },
+  "40739423": {
+    "number_en": 32,
+    "title_en": "Red Mansion",
+    "desc_en": "A luxurious villa with a combination of Chinese and Western styles, made of red bricks. The rooftop has a helicopter and solar water heaters, with servants on each floor, security, and luxury cars on the first floor.",
+    "number_cn": "三二",
+    "title_cn": "红楼别墅",
+    "desc_cn": "通体红砖的中西结合豪华别墅，楼顶设有直升机和太阳能热水器，每层都设有佣人，一楼有保安和豪车。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739423"
+  },
+  "40739405": {
+    "number_en": 33,
+    "title_en": "Paradise Manor",
+    "desc_en": "A luxurious three-story traditional Chinese mansion with a courtyard featuring the Universal Bank of Heaven and Earth and the Immortal Palace garage. Two security guards are on the first floor, with chefs and servants on the second and third floors.",
+    "number_cn": "三三",
+    "title_cn": "天府庄园",
+    "desc_cn": "豪华三楼中式府邸，一楼院子内设有天地通用银行和遨游仙宫车库，一楼有两名安保，二、三层均有厨师和佣人",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739405"
+  },
+  "40739381": {
+    "number_en": 34,
+    "title_en": "Xianyue Mansion",
+    "desc_en": "A luxurious traditional Chinese mansion with a large theater on the third floor. The house is decorated with giant \"Fu\" characters on both sides, symbolizing good wishes. The first floor is fully equipped, and t",
+    "number_cn": "三四",
+    "title_cn": "仙悦豪宅",
+    "desc_cn": "三楼设有大戏台的豪华中式府邸，房屋两侧装饰有巨大的“福”字，代表美好祝愿，一楼设施完善，府邸内佣人配备齐全",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739381"
+  },
+  "40739338": {
+    "number_en": 36,
+    "title_en": "Xianle Mansion",
+    "desc_en": "An elegant villa blending traditional Chinese palace style with modern luxury elements, featuring a concert hall for art lovers.",
+    "number_cn": "三六",
+    "title_cn": "仙乐府",
+    "desc_cn": "仙乐府是一座融汇中国传统宫廷与现代奢华元素的别墅，内有音乐厅，适合热爱艺术的居民。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739338"
+  },
+  "40739340": {
+    "number_en": 37,
+    "title_en": "Juxian Tower",
+    "desc_en": "Ju Xian Tower is an elegant Chinese-style villa with an ancient exterior, featuring a library and tea room, perfect for scholars and poets.",
+    "number_cn": "三七",
+    "title_cn": "聚仙楼",
+    "desc_cn": "聚仙楼是一座典雅的中式别墅，外观古朴，内部设有藏书阁和茶室，是文人雅士的理想居所。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739340"
+  },
+  "40739400": {
+    "number_en": 38,
+    "title_en": "Royal Courtyard House",
+    "desc_en": "A luxurious residence in the form of a traditional courtyard, decorated with Chinese imperial style. The courtyard features a Chinese garden design, and the house has two floors with two large terraces.",
+    "number_cn": "三八",
+    "title_cn": "宫廷四合院",
+    "desc_cn": "以四合院为建筑形式、中国宫廷风为装饰风格的豪宅。院子内有中式园林设计，住宅有两层，配有两个大露台。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739400"
+  },
+  "40739407": {
+    "number_en": 39,
+    "title_en": "Bank Tower",
+    "desc_en": "A valuable investment property building, with commercial office spaces on the upper floors and rentable retail shops on the lower floors, offering high investment returns.",
+    "number_cn": "三九",
+    "title_cn": "银行大厦",
+    "desc_cn": "价值不菲的投资地产大厦，上层为商业写字楼，下层可作为商业店铺出租，投资转化率高。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739407"
+  },
+  "40739353": {
+    "number_en": 40,
+    "title_en": "Happy Palace",
+    "desc_en": "A three-story traditional Chinese mansion with stone lions and luxury cars on the first floor. The third floor features a magnificent theater, with a plaque at the entrance reading \"Huaxia Shines\".",
+    "number_cn": "四十",
+    "title_cn": "快乐宫",
+    "desc_cn": "三层中式传统府邸，一楼有石狮子、豪车。三楼设有华丽的戏台，门前牌匾写着“华厦生辉”字样。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739353"
+  },
+  "40739443": {
+    "number_en": 41,
+    "title_en": "Lingyun Villa",
+    "desc_en": "A traditional Chinese luxury villa, equipped with modern facilities, surrounded by beautiful landscapes, with elegant interior decor.",
+    "number_cn": "四一",
+    "title_cn": "灵云别墅",
+    "desc_cn": "传统中式豪华别墅，四周景观优美，配现代设施，内部装修典雅，尽显高贵与舒适。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739443"
+  },
+  "40739455": {
+    "number_en": 42,
+    "title_en": "European Villa",
+    "desc_en": "An elegant European-style villa, featuring a spacious living room, luxurious bedrooms, and advanced home facilities.",
+    "number_cn": "四二",
+    "title_cn": "欧式别墅",
+    "desc_cn": "典雅欧式风格别墅，拥有宽敞客厅、豪华卧室及先进设施，满足舒适高端居住需求。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739455"
+  },
+  "40739347": {
+    "number_en": 43,
+    "title_en": "Underworld Tower",
+    "desc_en": "A super-tall building in the Underworld, equipped with advanced technological facilities for multiple purposes.",
+    "number_cn": "四三",
+    "title_cn": "冥府大厦",
+    "desc_cn": "冥府中的超高层建筑，配备先进科技设施，适用于多种用途，象征繁荣与进步。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739347"
+  },
+  "40739362": {
+    "number_en": 44,
+    "title_en": "Commercial&Residential Building",
+    "desc_en": "A modern building that combines commercial and residential spaces, featuring luxury apartments and shops.",
+    "number_cn": "四四",
+    "title_cn": "新潮流商住大厦",
+    "desc_cn": "融合商业与住宅功能的现代大厦，内部设有高级公寓及高端商铺，布局科学合理。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739362"
+  },
+  "40739365": {
+    "number_en": 45,
+    "title_en": "Commercial Complex",
+    "desc_en": "A large commercial area that includes a shopping mall, dining areas, office buildings, and entertainment facilities.",
+    "number_cn": "四五",
+    "title_cn": "商业综合体",
+    "desc_cn": "大型商业区，包含购物中心、餐饮区、办公楼及娱乐设施，满足多元化需求。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739365"
+  },
+  "40739448": {
+    "number_en": 46,
+    "title_en": "Luxury Underworld Villa",
+    "desc_en": "A luxury villa in the Underworld, featuring exquisite decor and a comfortable living environment.",
+    "number_cn": "四六",
+    "title_cn": "冥府豪华别墅",
+    "desc_cn": "冥府中的顶级豪华别墅，极致奢华装潢，舒适环境，体现居住品味和尊贵身份。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739448"
+  },
+  "40739430": {
+    "number_en": 48,
+    "title_en": "Private Temple",
+    "desc_en": "A private religious temple dedicated to deities, with a serene and sacred environment ideal for meditation and prayers.",
+    "number_cn": "四八",
+    "title_cn": "私人庙宇",
+    "desc_cn": "私人宗教庙宇，供奉神灵，环境安静神圣，适合冥想与祈福，体现信仰虔诚。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739430"
+  },
+  "x": {
+    "number_en": 50,
+    "title_en": "Heavenly Supermarket",
+    "desc_en": "A supermarket offering all the necessities for Heaven, with a wide variety of high-quality products.",
+    "number_cn": "五十",
+    "title_cn": "天堂超市",
+    "desc_cn": "天堂专属超市，商品琳琅满目，品质一流，满足各种需求，是生活的好帮手。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "x"
+  },
+  "40739419": {
+    "number_en": 52,
+    "title_en": "Car & Driver's License Set",
+    "desc_en": "A complete set including a six-seat business car, vehicle purchase certificate, driver's license, and vehicle registration.",
+    "number_cn": "五二",
+    "title_cn": "汽车与驾驶证套装",
+    "desc_cn": "全套六座商务车车产，配车辆购置证、机动车驾驶证及行驶证，功能齐全。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739419"
+  },
+  "40739439": {
+    "number_en": 53,
+    "title_en": "Red Volkswagen SUV",
+    "desc_en": "A red Volkswagen SUV, suitable for various road conditions, luxurious, comfortable, and high-performance.",
+    "number_cn": "五三",
+    "title_cn": "红色大众牌越野车",
+    "desc_cn": "经典红色大众越野车，适合各种路况，豪华舒适，性能卓越，是出行的佳选。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739439"
+  },
+  "40739447": {
+    "number_en": 54,
+    "title_en": "Luxury Tricycle",
+    "desc_en": "A luxuriously designed tricycle, suitable for transportation in the Underworld, elegant and practical.",
+    "number_cn": "五四",
+    "title_cn": "奢华三轮车",
+    "desc_cn": "豪华设计的三轮车，适用于冥府交通需求，既优雅又实用，满足多场景使用。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739447"
+  },
+  "40739435": {
+    "number_en": 56,
+    "title_en": "Red Sedan",
+    "desc_en": "A classic red sedan, with a streamlined design, exuding nobility and luxury.",
+    "number_cn": "五六",
+    "title_cn": "红色轿车",
+    "desc_cn": "经典红色流线型轿车，尽显尊贵与豪华，设计优雅，行驶舒适，备受推崇。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739435"
+  },
+  "40739370": {
+    "number_en": 57,
+    "title_en": "Heavenly Electric Bicycle",
+    "desc_en": "An electric bicycle specially designed for Heaven, eco-friendly and effortless, ideal for fast travel.",
+    "number_cn": "五七",
+    "title_cn": "天堂电动自行车",
+    "desc_cn": "天堂专供电动自行车，环保省力，适合快速通行，设计轻便，易于操作。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739370"
+  },
+  "40739335": {
+    "number_en": 58,
+    "title_en": "Black Hummer",
+    "desc_en": "A black Hummer, with powerful off-road capabilities, suitable for extreme road conditions.",
+    "number_cn": "五八",
+    "title_cn": "黑色悍马车",
+    "desc_cn": "强大越野能力的黑色悍马车，适合各种极端路况，动力强劲，可靠性能出色。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739335"
+  },
+  "40739376": {
+    "number_en": 59,
+    "title_en": "Mercedes-Benz Luxury RV",
+    "desc_en": "A luxury RV from Mercedes-Benz, equipped with beds, a kitchen, a bathroom, and a lounge area.",
+    "number_cn": "五九",
+    "title_cn": "奔驰豪华房车",
+    "desc_cn": "奔驰品牌顶级豪华房车，配床铺、厨房、浴室及休闲区，打造舒适流动家园。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739376"
+  },
+  "40739358": {
+    "number_en": 62,
+    "title_en": "Harley-Davidson Motorcycle",
+    "desc_en": "A Harley-Davidson motorcycle, with a powerful engine and a classic design.",
+    "number_cn": "六二",
+    "title_cn": "哈雷摩托车",
+    "desc_cn": "哈雷品牌经典摩托车，配强大发动机和优雅设计，骑行体验尽显力量与自由。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739358"
+  },
+  "40739364": {
+    "number_en": 63,
+    "title_en": "Two-Story Yacht",
+    "desc_en": "A luxurious two-story yacht, perfect for enjoying sea vacations and gatherings.",
+    "number_cn": "六三",
+    "title_cn": "双层游艇",
+    "desc_cn": "豪华双层游艇，设计精美，适合海上度假和聚会，提供舒适与奢华的航行体验。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739364"
+  },
+  "40739361": {
+    "number_en": 64,
+    "title_en": "Double-Layered Bridal Palanquin",
+    "desc_en": "A traditional Chinese double-layered bridal palanquin, luxurious and elegant, used for important ceremonies.",
+    "number_cn": "六四",
+    "title_cn": "双层花轿",
+    "desc_cn": "传统中式双层花轿，豪华典雅，用于重要场合接送，尽显礼仪庄重和文化底蕴。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739361"
+  },
+  "40739339": {
+    "number_en": 68,
+    "title_en": "Men's Winter Outerwear set",
+    "desc_en": "Set includes three men's fall and winter outerwear: one fur-collared cotton jacket, one fur-collared down jacket, and one nice Zhongshan suit.",
+    "number_cn": "六八",
+    "title_cn": "高级男士秋冬套装",
+    "desc_cn": "包含三件男士秋冬外套，毛领棉服一件、羽绒服一件及一套高级中山装。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739339"
+  },
+  "40739387": {
+    "number_en": 69,
+    "title_en": "Ladies' Long Down Jacket",
+    "desc_en": "Three styles of women's long down jackets, essential for winter. Available in blue, purple, and brick red prints, with genuine leather fur collars.",
+    "number_cn": "六九",
+    "title_cn": "女士长款羽绒服",
+    "desc_cn": "三款女士长款羽绒服，适合寒冬穿着，有蓝紫砖红三种印花及真皮毛领设计。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739387"
+  },
+  "40739397": {
+    "number_en": 72,
+    "title_en": "Womens Lingerie Set",
+    "desc_en": "Includes elegant and comfortable women's lingerie, including bras, panties, sleepwear, etc.",
+    "number_cn": "七二",
+    "title_cn": "女士内衣套装",
+    "desc_cn": "包含优雅舒适的女士内衣套装，包括文胸、内裤及睡衣，展现品质与时尚。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739397"
+  },
+  "40739390": {
+    "number_en": 73,
+    "title_en": "Womens Aristocrat Wear",
+    "desc_en": "A women's aristocrat outfit, ideal for social occasions, showcasing nobility and elegance.",
+    "number_cn": "七三",
+    "title_cn": "女士贵妇装",
+    "desc_cn": "适合社交场合穿着的贵妇装，设计高贵典雅，展现女性气质与精致美感。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739390"
+  },
+  "40739330": {
+    "number_en": 74,
+    "title_en": "Womens Cotton Collar Top",
+    "desc_en": "Comfortable women's cotton-collared clothing, perfect for autumn and winter, both warm and stylish.",
+    "number_cn": "七四",
+    "title_cn": "女士棉领服",
+    "desc_cn": "舒适时尚的女士棉领服，保暖性能优越，适合秋冬穿着，是经典衣橱单品。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739330"
+  },
+  "40739395": {
+    "number_en": 76,
+    "title_en": "Womens Pearl-Chain Qipao",
+    "desc_en": "A beautiful qipao for women, adorned with pearl chains, showcasing a blend of tradition and modern beauty.",
+    "number_cn": "七六",
+    "title_cn": "女士珠链旗袍",
+    "desc_cn": "精美珠链装饰的女士旗袍，结合传统与现代设计，展现优雅端庄的气质。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739395"
+  },
+  "40739391": {
+    "number_en": 77,
+    "title_en": "Girls Down Coat Set",
+    "desc_en": "A down coat set for girls, warm and comfortable, ideal for cold weather.",
+    "number_cn": "七七",
+    "title_cn": "女童羽绒服套装",
+    "desc_cn": "为女童设计的羽绒服套装，保暖舒适，防风抗寒，适合各种寒冷天气穿着。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739391"
+  },
+  "40739445": {
+    "number_en": 78,
+    "title_en": "Boys Down Coat Set",
+    "desc_en": "A down coat set for boys, designed for comfort, perfect for cold seasons.",
+    "number_cn": "七八",
+    "title_cn": "男童羽绒服套装",
+    "desc_cn": "舒适保暖的男童羽绒服套装，设计贴心，适合寒冷季节，提供全面防寒保护。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739445"
+  },
+  "40739403": {
+    "number_en": 79,
+    "title_en": "Womens Cold Weather Clothing",
+    "desc_en": "Clothing for women in cold weather, including down coats, thermal underwear, etc.",
+    "number_cn": "七九",
+    "title_cn": "寒衣（女）",
+    "desc_cn": "适合寒冷天气的女士保暖服饰，包含羽绒服、保暖内衣等实用高效的防寒单品。",
+    "category_cn": "精品服饰",
+    "category_en": "Fashion & Apparel",
+    "block": "40739403"
+  },
+  "40739377": {
+    "number_en": 81,
+    "title_en": "Heaven Water Dispenser",
+    "desc_en": "Equipped with \"Heavenly Pure Water\" bottled water, two automatic water outlets, and a fresh-keeping cabinet.",
+    "number_cn": "八一",
+    "title_cn": "天堂饮水机",
+    "desc_cn": "天堂饮水机配“天堂纯净水”桶装水，配备两个自动出水口与保鲜柜，功能实用环保。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739377"
+  },
+  "40739374": {
+    "number_en": 82,
+    "title_en": "Heaven Disinfection Cabinet",
+    "desc_en": "A dish sterilizer using powerful ozone sterilization technology for comprehensive health protection. Class A energy efficiency, environmentally friendly and energy-saving.",
+    "number_cn": "八二",
+    "title_cn": "天堂牌消毒柜",
+    "desc_cn": "餐具消毒柜，采用强力臭氧杀菌技术，全面守护健康，一级能耗设计，环保又节能。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739374"
+  },
+  "40739346": {
+    "number_en": 83,
+    "title_en": "Minbao Microwave Oven",
+    "desc_en": "Minbao brand microwave oven for general food heating, rated as excellent, awarded the Underworld Quality First Gold Award.",
+    "number_cn": "八三",
+    "title_cn": "冥宝微波炉",
+    "desc_cn": "冥宝牌微波炉，用于快速加热食品，品质评估优，荣获冥府质量第一金奖，性能可靠。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739346"
+  },
+  "40739352": {
+    "number_en": 84,
+    "title_en": "Underworld Premium Refrigerator",
+    "desc_en": "A premium Underworld refrigerator with extra-large four-layer storage, energy-efficient, super cooling, ensuring food freshness.",
+    "number_cn": "八四",
+    "title_cn": "冥府高级冰箱",
+    "desc_cn": "四层储存空间的高级冰箱，节能先锋，超强制冷，保证食材新鲜，是理想的家庭电器。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739352"
+  },
+  "40739402": {
+    "number_en": 85,
+    "title_en": "Home Appliance Series",
+    "desc_en": "Includes nearly all appliances needed for daily living, such as TV, water heater, refrigerator, microwave, water dispenser, washing machine, and sound system.",
+    "number_cn": "八五",
+    "title_cn": "家电系列",
+    "desc_cn": "包含电视、热水器、冰箱、微波炉、饮水机、洗衣机、音响等生活所需的多功能家电。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739402"
+  },
+  "40739431": {
+    "number_en": 86,
+    "title_en": "Rosewood Sofa",
+    "desc_en": "Exquisite rosewood sofa, carved with intricate patterns, showcasing luxury and elegance.",
+    "number_cn": "八六",
+    "title_cn": "红木沙发",
+    "desc_cn": "雕刻精美花纹的红木沙发，尽显豪华和典雅，是中式传统与现代融合的经典家具。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739431"
+  },
+  "40739411": {
+    "number_en": 87,
+    "title_en": "Home Theater Set",
+    "desc_en": "An integrated home entertainment system, including a large screen, disc drive, speakers, remote, microphone, and several DVDs.",
+    "number_cn": "八七",
+    "title_cn": "家庭影院套装",
+    "desc_cn": "包含大屏幕、音响、光驱设备、遥控器和麦克风的家庭影院套装，观影娱乐一体化。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739411"
+  },
+  "40739329": {
+    "number_en": 88,
+    "title_en": "Table and Four Chairs Set",
+    "desc_en": "A dining set for home use, including a table and four chairs, elegantly designed in a simple, modern style.",
+    "number_cn": "八八",
+    "title_cn": "一桌四椅套装",
+    "desc_cn": "简约现代风格的餐桌四椅套装，适合家庭用餐使用，设计优雅，实用美观兼备。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739329"
+  },
+  "40739409": {
+    "number_en": 89,
+    "title_en": "Dragon & Phoenix Bed",
+    "desc_en": "A lavishly decorated double bed, with the inscription “Dragon and Phoenix Bring Prosperity,” accompanied by a nightstand with the inscription “Wealth and Prosperity.”",
+    "number_cn": "八九",
+    "title_cn": "龙凤呈祥大床",
+    "desc_cn": "华丽双人床，写“龙凤呈祥”，配抽屉式床头柜，写“招财进宝”，寓意美满幸福。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739409"
+  },
+  "40739418": {
+    "number_en": 90,
+    "title_en": "Coffee Table Bar",
+    "desc_en": "A modern-style coffee table bar, ideal for homes or small offices, providing practical storage space.",
+    "number_cn": "九十",
+    "title_cn": "茶几吧",
+    "desc_cn": "现代设计的茶几吧，适合家用或小型办公室，提供实用储物空间与装饰效果。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739418"
+  },
+  "40739438": {
+    "number_en": 91,
+    "title_en": "Rice Cooker",
+    "desc_en": "A high-performance rice cooker, designed for quick cooking while preserving the original flavor of food.",
+    "number_cn": "九一",
+    "title_cn": "电饭锅",
+    "desc_cn": "高效能电饭锅，支持快速烹饪，能保存食物原味，是现代厨房的必备好帮手。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739438"
+  },
+  "40739360": {
+    "number_en": 94,
+    "title_en": "Shaving Care Set",
+    "desc_en": "A shaving care set, including a high-end razor, moisturizing cream, and razor blades for grooming.",
+    "number_cn": "九四",
+    "title_cn": "剃刀护理套装",
+    "desc_cn": "剃须护理套装，包含高端剃刀、润肤膏、刀片等配件，为男士提供优质护理体验。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739360"
+  },
+  "40739345": {
+    "number_en": 95,
+    "title_en": "Denture Cleaning Set",
+    "desc_en": "A cleaning set designed for dentures, containing cleaners, brushes, and other accessories.",
+    "number_cn": "九五",
+    "title_cn": "假牙清洁套装",
+    "desc_cn": "专为假牙清洁设计的护理套装，包含清洁剂、刷具等，实用方便，维护口腔健康。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739345"
+  },
+  "40739349": {
+    "number_en": 96,
+    "title_en": "Lancôme Cosmetics Set",
+    "desc_en": "A high-end cosmetics set from Lancôme, including face cream, eye cream, serums, and more.",
+    "number_cn": "九六",
+    "title_cn": "兰蔻化妆品套装",
+    "desc_cn": "兰蔻品牌高端化妆品套装，包含面霜、眼霜、精华液，满足女性护肤的奢华需求。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739349"
+  },
+  "40739408": {
+    "number_en": 97,
+    "title_en": "Flashlight",
+    "desc_en": "A portable, high-brightness flashlight, ideal for outdoor activities or emergency situations.",
+    "number_cn": "九七",
+    "title_cn": "手电筒",
+    "desc_cn": "便携高亮度手电筒，适合室外活动或应急使用，设计耐用，方便携带，性能可靠。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739408"
+  },
+  "40739401": {
+    "number_en": 98,
+    "title_en": "Bedding Set",
+    "desc_en": "An exquisite bedding set, including sheets, duvet covers, pillowcases, etc., to enhance home life quality.",
+    "number_cn": "九八",
+    "title_cn": "家纺套装",
+    "desc_cn": "包含床单、被套、枕套的家纺套装，设计精美，材质柔软，提升家庭生活的舒适感。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739401"
+  },
+  "40739417": {
+    "number_en": 99,
+    "title_en": "Toiletries Set",
+    "desc_en": "A complete toiletries set, including a toothbrush, toothpaste, mouthwash, towels, and other daily hygiene items.",
+    "number_cn": "九九",
+    "title_cn": "洗漱套组",
+    "desc_cn": "包含牙刷、牙膏、漱口水、毛巾等清洁用品的完整套组，满足日常洗漱需求，方便实用。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739417"
+  },
+  "40739373": {
+    "number_en": 103,
+    "title_en": "Heaven Washing Machine",
+    "desc_en": "A high-efficiency washing machine, cleans clothes quickly while reducing energy consumption.",
+    "number_cn": "一零三",
+    "title_cn": "天堂洗衣机",
+    "desc_cn": "高效能天堂洗衣机，快速清洁衣物，节能环保，设计现代，适合各种家庭使用。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739373"
+  },
+  "40739372": {
+    "number_en": 104,
+    "title_en": "Heaven Safe",
+    "desc_en": "A high-level security safe, perfect for storing valuable items.",
+    "number_cn": "一零四",
+    "title_cn": "天堂保险柜",
+    "desc_cn": "天堂专供保险柜，安全等级最高，适合存放贵重物品，保护财富与隐私安全。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739372"
+  },
+  "40739456": {
+    "number_en": 105,
+    "title_en": "Wealthy Gaming Set",
+    "desc_en": "A refined gaming set including elegant playing cards, high-end mahjong, and a full set of chips.",
+    "number_cn": "一零五",
+    "title_cn": "财源广进棋牌套装",
+    "desc_cn": "精致的棋牌套组，包含典雅扑克、高级麻将及筹码，寓意四方进宝，趣味无限。",
+    "category_cn": "生活情趣",
+    "category_en": "Leisure & Entertainment",
+    "block": "40739456"
+  },
+  "40739343": {
+    "number_en": 106,
+    "title_en": "Underworld Beer Set",
+    "desc_en": "Three six-packs of Underworld beer, including six cans each of Harbin, Tsingtao, and Budweiser.",
+    "number_cn": "一零六",
+    "title_cn": "冥府专用啤酒套装",
+    "desc_cn": "包含哈尔滨、青岛、百威啤酒各六罐的冥府专用啤酒套装，满足多样化需求。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739343"
+  },
+  "40739344": {
+    "number_en": 111,
+    "title_en": "Smart Baby Stationery",
+    "desc_en": "A stationery set featuring Disney Mickey and Minnie patterns, including a pencil case, automatic pencil sharpener, scissors, and colored pens.",
+    "number_cn": "一一一",
+    "title_cn": "聪明宝贝优派文具",
+    "desc_cn": "印有迪士尼米奇米妮图案的文具套装，包含铅笔盒、卷笔刀、剪刀和彩笔。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739344"
+  },
+  "40739351": {
+    "number_en": 112,
+    "title_en": "Underworld Maotai",
+    "desc_en": "Maotai is the top-notch liquor in China. This special supply for the Underworld allows ancestors to enjoy a luxurious drinking experience.",
+    "number_cn": "一一二",
+    "title_cn": "冥府茅台酒",
+    "desc_cn": "专供冥府的茅台酒，是中国最高级白酒，带给祖先无与伦比的饮酒体验。",
+    "category_cn": "地产豪宅",
+    "category_en": "Real Estate & Mansions",
+    "block": "40739351"
+  },
+  "40739375": {
+    "number_en": 113,
+    "title_en": "Heaven Cigarettes",
+    "desc_en": "A cigarette gift box exclusively for Heaven, featuring most famous cigarette brands, produced by the Underworld Tobacco Company.",
+    "number_cn": "一一三",
+    "title_cn": "天堂香烟",
+    "desc_cn": "天堂专供奢华香烟礼盒，包含各大名烟品牌，由冥府烟草公司精心监制。",
+    "category_cn": "一路走好",
+    "category_en": "Farewell & Blessings",
+    "block": "40739375"
+  },
+  "40739404": {
+    "number_en": 116,
+    "title_en": "Massage Chair",
+    "desc_en": "Xinguo brand electric massage chair with side button design and zoned kneading, providing an ultimate relaxation experience even in the underworld.",
+    "number_cn": "一一六",
+    "title_cn": "按摩椅",
+    "desc_cn": "新贵牌电动按摩椅，椅侧按键设计，分区按揉，提供极致的按摩放松体验。",
+    "category_cn": "生活情趣",
+    "category_en": "Leisure & Entertainment",
+    "block": "40739404"
+  },
+  "40739336": {
+    "number_en": 118,
+    "title_en": "Chinese Tea Tasting Set",
+    "desc_en": "A traditional Chinese tea set, including a teapot, teacups, tea tray, and more, perfect for tea tasting or gifting.",
+    "number_cn": "一一八",
+    "title_cn": "中式品茶套装",
+    "desc_cn": "传统中式茶具套装，含茶壶、茶杯、茶盘等，设计雅致，适合品茶与赠送礼品使用。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739336"
+  },
+  "40739421": {
+    "number_en": 121,
+    "title_en": "Fruit Basket",
+    "desc_en": "A beautiful fruit basket containing a variety of fresh fruits, vibrant in color and rich in flavor.",
+    "number_cn": "一二一",
+    "title_cn": "水果篮",
+    "desc_cn": "包含多种新鲜水果的精美水果篮，颜色鲜艳，营养丰富，是理想的馈赠佳品。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739421"
+  },
+  "40739350": {
+    "number_en": 124,
+    "title_en": "Ice Drink Gift Set",
+    "desc_en": "A set of various flavored ice drinks, perfect for hot summer days, refreshing and cooling.",
+    "number_cn": "一二四",
+    "title_cn": "冷饮大礼包",
+    "desc_cn": "包含多种口味冷饮的大礼包，清凉解暑，是炎热夏季的不二之选，尽享清爽。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739350"
+  },
+  "4073943": {
+    "number_en": 132,
+    "title_en": "Delicious Lobster",
+    "desc_en": "Freshly cooked lobster, tender and juicy, with a delicious flavor, served with a variety of dipping sauces.",
+    "number_cn": "一三二",
+    "title_cn": "美味龙虾",
+    "desc_cn": "新鲜烹饪的龙虾，肉质鲜嫩，搭配多种蘸料，味道鲜美，适合多种宴会场合。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "4073943"
+  },
+  "40739427": {
+    "number_en": 134,
+    "title_en": "Seafood Platter Gift Set",
+    "desc_en": "A silver platter seafood gift set, including lobster, snapper, mantis shrimp, abalone, scallops, and more. Fresh, red, and tempting meat quality.",
+    "number_cn": "一三四",
+    "title_cn": "海鲜拼盘礼盒",
+    "desc_cn": "银色礼盒内含鲍鱼、大龙虾等海鲜，肉质鲜嫩，红润诱人，适合作为珍贵礼物。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739427"
+  },
+  "40739424": {
+    "number_en": 135,
+    "title_en": "Maoshan King Durian",
+    "desc_en": "A Maoshan King durian set, containing a whole Maoshan King durian, accompanied by premium fruits such as mangosteen, kiwi, rambutan, and dragon fruit.",
+    "number_cn": "一三五",
+    "title_cn": "猫山王榴莲",
+    "desc_cn": "包含整颗猫山王榴莲及高档水果的套装，搭配猕猴桃、山竹等，口感多样丰富。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739424"
+  },
+  "40739425": {
+    "number_en": 136,
+    "title_en": "Oyster Platter",
+    "desc_en": "A delicately arranged oyster platter, containing eight premium oysters, served with plums, lemon slices, chili, and mint for seasoning.",
+    "number_cn": "一三六",
+    "title_cn": "生蚝拼盘",
+    "desc_cn": "包含顶级生蚝的拼盘，搭配柠檬片及薄荷，摆盘精致，是高端宴会的最佳选择。",
+    "category_cn": "生活起居",
+    "category_en": "Daily Living",
+    "block": "40739425"
+  },
+  "40739396": {
+    "number_en": 138,
+    "title_en": "Pet Bowl",
+    "desc_en": "A high-quality food bowl designed for pets, durable and easy to clean.",
+    "number_cn": "一三八",
+    "title_cn": "宠物盆",
+    "desc_cn": "专为宠物设计的优质食物盆，材质耐用，易于清洁，确保宠物用餐的便利性。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739396"
+  },
+  "40739388": {
+    "number_en": 139,
+    "title_en": "Pet Meat Ribs",
+    "desc_en": "Selected cuts of meat shaped into ribs, providing a delicious meal for pets.",
+    "number_cn": "一三九",
+    "title_cn": "宠物肉排",
+    "desc_cn": "精选优质肉类制成的宠物肉排，营养丰富，味道鲜美，是宠物的高端美食选择。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739388"
+  },
+  "40739428": {
+    "number_en": 140,
+    "title_en": "Cat and Dog Food Set",
+    "desc_en": "A set containing cat food and dog food, rich in nutrients to meet the daily needs of pets.",
+    "number_cn": "一四布",
+    "title_cn": "猫粮狗粮套装",
+    "desc_cn": "包含猫粮和狗粮的营养套装，满足宠物日常所需，是健康成长的理想选择。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739428"
+  },
+  "40739392": {
+    "number_en": 141,
+    "title_en": "Pet House",
+    "desc_en": "A small house designed for pets, comfortable and safe, offering them a warm home.",
+    "number_cn": "一四一",
+    "title_cn": "宠物屋",
+    "desc_cn": "为宠物打造的舒适小屋，设计安全温暖，提供一个安静的休憩空间。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739392"
+  },
+  "40739393": {
+    "number_en": 142,
+    "title_en": "Pet Bowl",
+    "desc_en": "A pet-friendly bowl made from safe materials, easy to clean.",
+    "number_cn": "一四二",
+    "title_cn": "宠物碗",
+    "desc_cn": "适合宠物使用的安全碗，材质优质，易于清洗，满足宠物的日常饮食需求。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739393"
+  },
+  "40739359": {
+    "number_en": 143,
+    "title_en": "Wagyu Beef Ribs",
+    "desc_en": "Selected Wagyu beef ribs, offering a premium and delicious treat for pets.",
+    "number_cn": "一四三",
+    "title_cn": "和牛肉排",
+    "desc_cn": "精选和牛肉排，专为宠物提供的高端美食，口感细腻，营养价值丰富。",
+    "category_cn": "交通工具",
+    "category_en": "Vehicles & Transportation",
+    "block": "40739359"
+  },
+  "40739410": {
+    "number_en": 144,
+    "title_en": "Pet Money",
+    "desc_en": "Money props designed for pets, used for their games and entertainment.",
+    "number_cn": "一四四",
+    "title_cn": "宠物钱",
+    "desc_cn": "专为逝去宠物设计的骨头形状纸钱，用于表达思念与祝福，象征宠物在天堂的幸福生活。",
+    "category_cn": "天堂宠物",
+    "category_en": "Heavenly Pets",
+    "block": "40739410"
+  }
+};
+
+    let allBlocks = [];
+    let currentCategory = 'all';
+
+    async function loadGallery() {
+      try {
+        const response = await fetch('https://api.are.na/v2/channels/joss-paper?per=100');
+        const data = await response.json();
+        
+        if (data.contents) {
+          allBlocks = data.contents.filter(block => 
+            block.class === 'Image' && block.image && block.image.thumb
+          );
+
+          // 用block ID匹配数据
+          allBlocks.forEach((block) => {
+            const blockId = String(block.id);
+            console.log('Block ID:', blockId, 'Has data:', !!itemsDataDict[blockId]);
+            if (itemsDataDict[blockId]) {
+              block.itemData = itemsDataDict[blockId];
+            }
+          });
+
+          // 获取分类
+          const categories = new Set();
+          Object.values(itemsDataDict).forEach(item => {
+            if (item.category_en) categories.add(item.category_en);
+          });
+
+          // 五行色系 + 补充颜色 (调亮深色系)
+          const categoryColorMap = {
+            'Vehicles & Transportation': '#2ECC71',  // 青绿色（木）
+            'Farewell & Blessings': '#F8B4C4',      // 浅红色（火）
+            'Daily Living': '#F4D03F',               // 黄色（土）
+            'Real Estate & Mansions': '#ECF0F1',    // 白色（金）
+            'Heavenly Pets': '#3498DB',             // 蓝色（水）
+            'Fashion & Apparel': '#F8B4E6',         // 浅洋红色
+            'Leisure & Entertainment': '#D8BFD8'    // 浅紫色
+          };
+
+          const categoryFilter = document.getElementById('categoryFilter');
+          Array.from(categories).forEach(cat => {
+            const btn = document.createElement('button');
+            btn.className = 'category-btn';
+            btn.textContent = cat.toUpperCase();
+            btn.dataset.category = cat;
+            btn.style.backgroundColor = categoryColorMap[cat] || '#FF6B9D';
+            
+            btn.addEventListener('click', () => {
+              document.querySelectorAll('.category-btn').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+              currentCategory = cat;
+              renderGallery();
+            });
+            categoryFilter.appendChild(btn);
+          });
+        }
+
+        renderGallery();
+      } catch (error) {
+        console.error('Error:', error);
+      }
+    }
+
+    function renderGallery() {
+      const gallery = document.getElementById('gallery');
+      gallery.innerHTML = '';
+
+      const filtered = currentCategory === 'all' 
+        ? allBlocks 
+        : allBlocks.filter(block => block.itemData && block.itemData.category_en === currentCategory);
+
+      filtered.forEach((block) => {
+        const itemEl = document.createElement('div');
+        itemEl.className = 'gallery-item';
+        itemEl.innerHTML = `<img src="${block.image.thumb.url}" class="gallery-item-image" alt="Image">`;
+        
+        if (block.itemData) {
+          itemEl.addEventListener('mouseenter', () => showInfo(block.itemData));
+          itemEl.addEventListener('mouseleave', () => {
+            // 只有当lightbox不活跃时才清除info
+            if (!document.getElementById('lightbox').classList.contains('active')) {
+              hideInfo();
+            }
+          });
+          
+          // 添加点击放大功能
+          itemEl.addEventListener('click', () => {
+            // 保存当前itemData到全局变量
+            window.currentLightboxItem = block.itemData;
+            openLightbox(block.image.original.url);
+          });
+        }
+        
+        gallery.appendChild(itemEl);
+      });
+    }
+
+    function openLightbox(imageUrl) {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxImage = document.getElementById('lightboxImage');
+      const lightboxClose = document.getElementById('lightboxClose');
+      
+      lightboxImage.src = imageUrl;
+      lightbox.classList.add('active');
+      lightboxClose.style.display = 'flex';
+      
+      // 显示保存的itemData
+      if (window.currentLightboxItem) {
+        showInfo(window.currentLightboxItem);
+      }
+    }
+
+    function closeLightbox() {
+      const lightbox = document.getElementById('lightbox');
+      const lightboxClose = document.getElementById('lightboxClose');
+      
+      lightbox.classList.remove('active');
+      lightboxClose.style.display = 'none';
+      
+      // 关闭lightbox时显示默认前言
+      showDefaultPreface();
+      window.currentLightboxItem = null;
+    }
+
+    let defaultPrefaceActive = true;
+
+    function showDefaultPreface() {
+      const englishDiv = document.getElementById('infoEnglish');
+      const chineseDiv = document.getElementById('infoChinese');
+      const infoPanel = document.querySelector('.info-panel');
+      
+      defaultPrefaceActive = true;
+      infoPanel.style.backgroundColor = '#ffffff';
+      
+      // 英文部分
+      const englishText = "JOSS PAPER\n\nIn Chinese communities, it is believed that flames can transport items from the living world to the deceased. People often use the act of burning offerings as a way to convey material goods and emotional connections to their departed loved ones.\n\nThe offerings for ancestors are diverse, including houses, cars, servants, paper clothes, and paper money. Through the craftsmanship of paper effigies, the living transform their imagination of a luxurious and ideal life for the deceased in the afterlife into tangible forms. By burning these paper offerings, the most thoughtful and precious gifts are symbolically delivered to their ancestors.\n\nWhat was not fulfilled in this life, we give you the very best in the next.";
+      
+      const tempSpan = document.createElement('span');
+      tempSpan.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        font-size: 0.9em;
+        font-weight: 300;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      `;
+      document.body.appendChild(tempSpan);
+      
+      const maxWidth = (window.innerWidth * 0.6) - 60;
+      const words = englishText.split(' ');
+      let lines = [];
+      let currentLine = '';
+      
+      words.forEach(word => {
+        const testText = currentLine ? currentLine + ' ' + word : word;
+        tempSpan.textContent = testText;
+        
+        if (tempSpan.offsetWidth > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testText;
+        }
+      });
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      document.body.removeChild(tempSpan);
+      
+      let englishHTML = '';
+      lines.forEach((line, index) => {
+        if (line.trim()) {
+          // 第一行（标题）加粗
+          if (index === 0) {
+            englishHTML += `<div class="info-english-line" style="font-weight: 500;">${line.trim()}</div>`;
+          } else {
+            englishHTML += `<div class="info-english-line">${line.trim()}</div>`;
+          }
+        }
+      });
+      
+      englishDiv.innerHTML = englishHTML;
+
+      // 中文部分
+      const chineseText = "前言在中国传统文化中，人们相信通过烧纸可以把现世的物品传递给已逝的亲人。祭祀祖先的供品多种多样，有纸房子、纸车子、纸人、纸衣服、纸币等。通过纸扎工艺，人们把对逝去亲人来世美好生活的想象幻化成具体的物品。通过焚烧纸扎品，最诚挚、最珍贵的祝福被象征性地传递给先人。此生未能尽心意，来世给你最好的。";
+      
+      const charsPerColumn = 5;
+      let columns = [];
+      
+      for (let i = 0; i < chineseText.length; i += charsPerColumn) {
+        columns.push(chineseText.substring(i, i + charsPerColumn));
+      }
+      
+      columns = columns.reverse();
+      
+      let html = '';
+      columns.forEach((column) => {
+        const chars = Array.from(column)
+          .map(char => `<div class="chinese-char">${char}</div>`)
+          .join('');
+        
+        html += `<div class="info-chinese-column">
+          <div class="info-chinese-text">${chars}</div>
+        </div>`;
+      });
+      
+      chineseDiv.innerHTML = html;
+    }
+
+    function showInfo(item) {
+      defaultPrefaceActive = false;
+      const englishDiv = document.getElementById('infoEnglish');
+      const infoPanel = document.querySelector('.info-panel');
+      let fullText = (item.number_en ? item.number_en + ' ' : '') + item.title_en + ' ' + item.desc_en;
+      
+      const tempSpan = document.createElement('span');
+      tempSpan.style.cssText = `
+        position: absolute;
+        visibility: hidden;
+        font-size: 0.9em;
+        font-weight: 300;
+        letter-spacing: 0.02em;
+        white-space: nowrap;
+      `;
+      document.body.appendChild(tempSpan);
+      
+      // 使用固定宽度而不是offsetWidth，保证排版一致
+      const maxWidth = (window.innerWidth * 0.6) - 60;
+      const words = fullText.split(' ');
+      let lines = [];
+      let currentLine = '';
+      
+      words.forEach(word => {
+        const testText = currentLine ? currentLine + ' ' + word : word;
+        tempSpan.textContent = testText;
+        
+        if (tempSpan.offsetWidth > maxWidth && currentLine) {
+          lines.push(currentLine);
+          currentLine = word;
+        } else {
+          currentLine = testText;
+        }
+      });
+      
+      if (currentLine) {
+        lines.push(currentLine);
+      }
+      
+      document.body.removeChild(tempSpan);
+      
+      // 根据分类获取颜色
+      const categoryColorMap = {
+        'Vehicles & Transportation': '#2ECC71',
+        'Farewell & Blessings': '#F8B4C4',
+        'Daily Living': '#F4D03F',
+        'Real Estate & Mansions': '#ECF0F1',
+        'Heavenly Pets': '#3498DB',
+        'Fashion & Apparel': '#F8B4E6',
+        'Leisure & Entertainment': '#D8BFD8'
+      };
+      
+      const bgColor = categoryColorMap[item.category_en] || '#ffffff';
+      infoPanel.style.backgroundColor = bgColor;
+      
+      // Create HTML with each line
+      let englishHTML = '';
+      lines.forEach(line => {
+        if (line.trim()) {
+          englishHTML += `<div class="info-english-line">${line.trim()}</div>`;
+        }
+      });
+      
+      englishDiv.innerHTML = englishHTML || `<div class="info-english-line">${fullText}</div>`;
+
+      let fullChineseText = (item.number_cn ? item.number_cn : '') + item.title_cn + item.desc_cn;
+      
+      const chineseDiv = document.getElementById('infoChinese');
+      const charsPerColumn = 5;
+      let columns = [];
+      
+      for (let i = 0; i < fullChineseText.length; i += charsPerColumn) {
+        columns.push(fullChineseText.substring(i, i + charsPerColumn));
+      }
+      
+      columns = columns.reverse();
+      
+      let html = '';
+      columns.forEach((column) => {
+        const chars = Array.from(column)
+          .map(char => `<div class="chinese-char">${char}</div>`)
+          .join('');
+        
+        html += `<div class="info-chinese-column">
+          <div class="info-chinese-text">${chars}</div>
+        </div>`;
+      });
+      
+      chineseDiv.innerHTML = html;
+    }
+
+    function hideInfo() {
+      if (!document.getElementById('lightbox').classList.contains('active')) {
+        showDefaultPreface();
+      }
+    }
+
+    loadGallery();
+    showDefaultPreface();
+
+    // Lightbox event listeners
+    document.getElementById('lightboxClose').addEventListener('click', closeLightbox);
+    document.getElementById('lightbox').addEventListener('click', (e) => {
+      if (e.target.id === 'lightbox') {
+        closeLightbox();
+      }
+    });
+
+    // ESC键关闭
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        closeLightbox();
+      }
+    });
+  </script>
+</body>
+</html>
