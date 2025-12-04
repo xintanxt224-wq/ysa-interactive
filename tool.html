@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Wind · Hair / Branch / Rain / Smoke</title>
+  <script src="https://cdn.jsdelivr.net/npm/p5@1.9.0/lib/p5.min.js"></script>
+  <style>
+    *{margin:0;padding:0;box-sizing:border-box;}
+    body{
+      background:white;color:black;
+      font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+      font-size:13px;font-weight:400;letter-spacing:0.3px;
+    }
+    #container{position:fixed;width:100%;height:100%;display:flex;flex-direction:column;}
+    #canvas-container{flex:1;background:white;}
+
+    #controls{
+      background:white;padding:16px 20px;
+      border-top:1px solid #e0e0e0;display:flex;gap:12px;align-items:center;flex-wrap:wrap;
+    }
+
+    #scene-switch{display:flex;gap:6px;align-items:center;border-right:1px solid #e0e0e0;
+      padding-right:10px;margin-right:6px;}
+    .scene-label{font-size:11px;color:#999;text-transform:uppercase;letter-spacing:0.08em;}
+
+    .scene-btn{
+      padding:4px 8px;border-radius:12px;border:1px solid #ccc;
+      font-size:12px;background:transparent;cursor:pointer;
+      display:flex;align-items:center;gap:4px;
+    }
+    .scene-btn.active{border-color:#000;font-weight:500;}
+
+    button{
+      padding:6px 0;font-size:13px;cursor:pointer;background:transparent;color:black;
+      border:none;border-bottom:1px solid #999;border-radius:0;font-family:inherit;
+      transition:0.2s;
+    }
+    button:hover{border-bottom-color:#333;}
+    button.active{border-bottom-color:#333;font-weight:500;}
+
+    input{
+      padding:8px 0;font-size:13px;border:none;border-bottom:1px solid #999;border-radius:0;
+      font-family:inherit;background:transparent;color:black;min-width:180px;
+      transition:0.2s;
+    }
+    input:focus{outline:none;border-bottom-color:#333;}
+    input::placeholder{color:#ccc;}
+
+    #refresh-btn{
+      position:fixed;top:20px;right:20px;width:40px;height:40px;
+      border:1px solid #999;border-radius:50%;background:transparent;
+      color:black;cursor:pointer;font-size:16px;display:flex;align-items:center;
+      justify-content:center;transition:0.2s;z-index:50;
+    }
+    #refresh-btn:hover{border-color:#333;}
+    #refresh-btn:active{transform:scale(0.95);}
+
+    #info{font-size:13px;color:#666;flex:1;display:flex;gap:20px;align-items:center;}
+    .info-item{display:flex;gap:6px;}
+    .info-label{color:#999;}
+    .info-value{color:black;font-weight:500;min-width:60px;}
+  </style>
+</head>
+<body>
+  <div id="container">
+    <div id="canvas-container"></div>
+    <div id="controls">
+
+      <!-- 场景切换 -->
+      <div id="scene-switch">
+        <span class="scene-label">Scene</span>
+        <button id="sceneHeadBtn" class="scene-btn active">👤 hair</button>
+        <button id="sceneTreeBtn" class="scene-btn">🌳 branches</button>
+        <button id="sceneRainBtn" class="scene-btn">🌧 rain</button>
+        <button id="sceneSmokeBtn" class="scene-btn">💨 smoke</button>
+      </div>
+
+      <button id="resetBtn">Clear</button>
+      <input id="city" placeholder="Enter city name">
+      <button id="getWindBtn">Get Wind</button>
+      <div id="info"></div>
+    </div>
+
+    <button id="refresh-btn">↻</button>
+  </div>
+
+  <script>
+    // -------------------- 全局状态 --------------------
+    let windSpeed=0,windDeg=0,windGust=0;
+    let t=0,centerX,centerY,hasWind=false;
+    let scene='head';
+
+    let customHead=[],customTree=[],customRain=[],customSmoke=[];
+    let currentStroke=null;
+    let isInputActive=false;
+
+    // -------------------- setup --------------------
+    function setup(){
+      let box=document.getElementById('canvas-container');
+      let canvas=createCanvas(box.clientWidth,box.clientHeight);
+      canvas.parent('canvas-container');
+      centerX=width/2; centerY=height/2;
+
+      // input
+      let city=document.getElementById('city');
+      city.addEventListener('focus',()=>isInputActive=true);
+      city.addEventListener('blur',()=>isInputActive=false);
+      city.addEventListener('mousedown',e=>e.stopPropagation());
+
+      // scene buttons
+      document.getElementById('sceneHeadBtn').onclick=()=>{scene='head';updateSceneBtns();}
+      document.getElementById('sceneTreeBtn').onclick=()=>{scene='tree';updateSceneBtns();}
+      document.getElementById('sceneRainBtn').onclick=()=>{scene='rain';updateSceneBtns();}
+      document.getElementById('sceneSmokeBtn').onclick=()=>{scene='smoke';updateSceneBtns();}
+
+      // clear
+      document.getElementById('resetBtn').onclick=()=>{
+        if(scene==='head')customHead=[];
+        else if(scene==='tree')customTree=[];
+        else if(scene==='rain')customRain=[];
+        else customSmoke=[];
+      };
+
+      // wind
+      document.getElementById('getWindBtn').onclick=()=>getWind();
+      city.addEventListener('keypress',e=>{if(e.key==='Enter')getWind();});
+
+      document.getElementById('refresh-btn').onclick=()=>location.reload();
+    }
+
+    function updateSceneBtns(){
+      document.getElementById('sceneHeadBtn').classList.toggle('active',scene==='head');
+      document.getElementById('sceneTreeBtn').classList.toggle('active',scene==='tree');
+      document.getElementById('sceneRainBtn').classList.toggle('active',scene==='rain');
+      document.getElementById('sceneSmokeBtn').classList.toggle('active',scene==='smoke');
+    }
+
+    // -------------------- Resize --------------------
+    function windowResized(){
+      let box=document.getElementById('canvas-container');
+      resizeCanvas(box.clientWidth,box.clientHeight);
+      centerX=width/2;centerY=height/2;
+    }
+
+    // -------------------- Mouse --------------------
+    function mousePressed(){
+      if(isInputActive)return true;
+      currentStroke={segments:[]};
+      return false;
+    }
+    function mouseDragged(){
+      if(isInputActive)return true;
+      if(currentStroke){
+        currentStroke.segments.push({
+          x1:pmouseX,y1:pmouseY,x2:mouseX,y2:mouseY
+        });
+      }
+      return false;
+    }
+    function mouseReleased(){
+      if(currentStroke && currentStroke.segments.length>0){
+        if(scene==='head')customHead.push(currentStroke);
+        else if(scene==='tree')customTree.push(currentStroke);
+        else if(scene==='rain')customRain.push(currentStroke);
+        else customSmoke.push(currentStroke);
+      }
+      currentStroke=null;
+      return false;
+    }
+
+    // -------------------- Draw Loop --------------------
+    function draw(){
+      background(255);
+      t+=0.03;
+
+      drawDirectionLabels();
+      if(scene==='head')drawStickFigure();
+      else if(scene==='tree')drawTree();
+      else if(scene==='rain')drawRainBase();
+      else drawSmokeBase();
+
+      drawAllStrokes();
+    }
+
+    // -------------------- Direction Labels --------------------
+    function drawDirectionLabels(){
+      stroke(0);strokeWeight(1);fill(0);
+      textSize(11);textAlign(CENTER,CENTER);
+      text('N',centerX,20);
+      text('S',centerX,height-20);
+      text('E',width-20,centerY);
+      text('W',20,centerY);
+    }
+
+    // -------------------- Hair Base --------------------
+    function drawStickFigure(){
+      stroke(0);strokeWeight(2);noFill();
+      circle(centerX,centerY-75,50);
+
+      fill(0);
+      circle(centerX-10,centerY-82,3);
+      circle(centerX+10,centerY-82,3);
+      noFill();
+
+      drawMouth(centerX,centerY-68);
+
+      line(centerX,centerY-50,centerX,centerY+15);
+      line(centerX,centerY-25,centerX-40,centerY-5);
+      line(centerX,centerY-25,centerX+40,centerY-5);
+      line(centerX,centerY+15,centerX-20,centerY+60);
+      line(centerX,centerY+15,centerX+20,centerY+60);
+    }
+
+    function drawMouth(x,y){
+      if(!hasWind||windSpeed<=3) arc(x,y,14,10,0,PI);
+      else if(windSpeed<=10)     line(x-7,y,x+7,y);
+      else                       arc(x,y+5,14,10,PI,TWO_PI);
+    }
+
+    // -------------------- Tree Base --------------------
+    // -------------------- Tree Base (Minimal Y Shape) --------------------
+function drawTree(){
+  stroke(0);
+  strokeWeight(2);
+  noFill();
+  
+  // Y 根坐标
+  let x = centerX;
+  let y = centerY + 60;
+  
+  let trunk_h = 120; // 树干高度
+  let fork_len = 75; // 分叉长度
+  let fork_angle = radians(32); // 分叉角度
+
+  // 画树干
+  line(x, y, x, y - trunk_h);
+
+  // 树冠顶点
+  let topX = x;
+  let topY = y - trunk_h;
+
+  // 左侧分叉
+  let lx = topX - fork_len * Math.cos(fork_angle);
+  let ly = topY - fork_len * Math.sin(fork_angle);
+  line(topX, topY, lx, ly);
+
+  // 右侧分叉
+  let rx = topX + fork_len * Math.cos(fork_angle);
+  let ry = topY - fork_len * Math.sin(fork_angle);
+  line(topX, topY, rx, ry);
+}
+
+
+    // -------------------- Rain Base --------------------
+    // -------------------- Rain Base (Uniform Line Weight for Cloud Outline) --------------------
+function drawRainBase(){
+  stroke(0);
+  strokeWeight(2);
+  noFill();
+  
+  // 云整体更大，位置微调，保持符号感
+  let cy = centerY - 120;
+
+  // 三朵云比例放大
+  ellipse(centerX - 55, cy, 60, 42);
+  ellipse(centerX,       cy - 10, 82, 52);
+  ellipse(centerX + 55, cy, 60, 42);
+}
+    // -------------------- Smoke Base：矩形香烟，无地平线 --------------------
+  // -------------------- Smoke Base (Smaller Minimal Cigarette) --------------------
+function drawSmokeBase(){
+  stroke(0);
+  strokeWeight(2);
+  noFill();
+
+  // 缩小香烟整体尺寸
+  let cigWidth  = 160;   // 原来 220
+  let cigHeight = 22;    // 原来 26
+
+  let x = centerX - cigWidth / 2;
+  let y = centerY + 65;
+
+  // 外框
+  rect(x, y, cigWidth, cigHeight);
+
+  // 过滤嘴竖线
+  let filterX = x + cigWidth * 0.25;
+  line(filterX, y, filterX, y + cigHeight);
+}
+
+    // -------------------- Draw Strokes --------------------
+    function drawAllStrokes(){
+      let arr=(scene==='head')?customHead:
+              (scene==='tree')?customTree:
+              (scene==='rain')?customRain:
+                                customSmoke;
+
+      for(let s of arr){
+        if(!s.segments||!s.segments.length)continue;
+        let r=s.segments[0];
+        let rootX=r.x1, rootY=r.y1;
+        let last=s.segments[s.segments.length-1];
+        drawHairLine(rootX,rootY,last.x2,last.y2,s.segments);
+      }
+    }
+
+    // -------------------- CORE deform --------------------
+    function drawHairLine(rootX, rootY, origTipX, origTipY, segments){
+      let baseLen=dist(rootX,rootY,origTipX,origTipY);
+      if(baseLen<0.001)baseLen=0.001;
+
+      // 颜色：hair=黑，tree=绿，rain=蓝灰，smoke=纯灰
+      let col=[0,0,0,255];
+   if(scene==='tree')  
+  col=[35, 160, 60, 200];     // 更亮、更饱和的绿
+if(scene==='rain')  
+  col=[20, 140, 235, 200];     // 蓝色更高饱和
+      if(scene==='smoke') col=[140,140,140,255];  // 灰色烟线，没有质感
+
+      if(!hasWind||windSpeed<=0.01){
+        stroke(...col);
+        strokeWeight(2);
+        for(let seg of segments)line(seg.x1,seg.y1,seg.x2,seg.y2);
+        return;
+      }
+
+      // 风方向
+      let toCompass=(windDeg+180)%360;
+      let ang=radians(toCompass);
+      let dirX=Math.sin(ang), dirY=-Math.cos(ang);
+      let dLen=Math.hypot(dirX,dirY);
+      if(dLen<0.001){dirX=1;dirY=0;} else{dirX/=dLen;dirY/=dLen;}
+
+      let nX=-dirY,nY=dirX;
+      let speedNorm=constrain(windSpeed/12,0,1);
+
+      // per-line random
+      function rnd(a,b,c,d){
+        let h=Math.sin(a*12.9898+b*78.233+c*37.719+d*11.345)*43758.5453;
+        return h-Math.floor(h);
+      }
+      let h=rnd(rootX,rootY,origTipX,origTipY);
+
+      stroke(...col);strokeWeight(2);
+
+      // ---------------- Rain 特例：不弯折，只有倾斜 + 轻微摆动 ----------------
+      if(scene==='rain'){
+        let gX=0,gY=1;
+        let w=0.1+0.85*speedNorm;
+        let vX=gX*(1-w)+dirX*w;
+        let vY=gY*(1-w)+dirY*w;
+        let vL=Math.hypot(vX,vY);
+        if(vL<0.001){vX=0;vY=1;} else{vX/=vL;vY/=vL;}
+
+        let baseAng=Math.atan2(vY,vX);
+        let jitter=radians(3)*(0.3+0.7*speedNorm);
+        let freq=1.2+2.6*speedNorm;
+        let off=jitter*Math.sin(t*freq + h*10);
+        let finalAng=baseAng+off;
+        let dx=Math.cos(finalAng), dy=Math.sin(finalAng);
+
+        let tipX=rootX+dx*baseLen;
+        let tipY=rootY+dy*baseLen;
+        line(rootX,rootY,tipX,tipY);
+        return;
+      }
+
+      // ---------------- Smoke 特例：上升 + 被风带走，越高越飘 ----------------
+      if(scene==='smoke'){
+        let upX=0,upY=-1;
+        let w=0.3+0.6*speedNorm;
+        let fX=upX*(1-w)+dirX*w;
+        let fY=upY*(1-w)+dirY*w;
+        let fL=Math.hypot(fX,fY);
+        if(fL<0.001){fX=0;fY=-1;} else{fX/=fL;fY/=fL;}
+
+        let nSX=-fY, nSY=fX;
+        let driftBase=baseLen*(0.15+1.4*speedNorm);
+        let swirlBase=5+18*speedNorm;
+        let swayFreq=(2+3*speedNorm)*(0.8+0.7*h);
+
+        function def(px,py){
+          let d=dist(px,py,rootX,rootY);
+          let s=constrain(d/baseLen,0,1);
+          let factor=pow(s,1.5);
+
+          let bx=rootX+fX*(baseLen*s);
+          let by=rootY+fY*(baseLen*s);
+
+          let driftX=dirX*driftBase*factor;
+          let driftY=dirY*driftBase*factor*0.6;
+
+          let swirl=sin(t*swayFreq + s*7 + h*5)*swirlBase*factor;
+          let swirlX=nSX*swirl, swirlY=nSY*swirl;
+
+          return {x:bx+driftX+swirlX, y:by+driftY+swirlY};
+        }
+
+        for(let seg of segments){
+          let p1=def(seg.x1,seg.y1);
+          let p2=def(seg.x2,seg.y2);
+          line(p1.x,p1.y,p2.x,p2.y);
+        }
+        return;
+      }
+
+      // ---------------- hair & tree 默认逻辑 ----------------
+      let rootR=1;
+      let pushBase=baseLen*(0.15+2.0*speedNorm);
+      let bendFactor=0.85+0.6*speedNorm;
+      let swayAmpBase=4+40*speedNorm;
+      let swayFreqBase=2.5+4*speedNorm;
+
+      let phase=h*TWO_PI;
+      let freqMul=0.4+1.4*pow(h,1.3);
+      let swayFreq=swayFreqBase*freqMul;
+
+      function deform(px,py){
+        let dx=px-rootX, dy=py-rootY;
+        let dist0=Math.hypot(dx,dy);
+        if(dist0<=rootR)return{ x:px,y:py };
+
+        let eff=max(baseLen-rootR,0.001);
+        let s=constrain((dist0-rootR)/eff,0,1);
+        let tipFactor=pow(s,1.9);
+
+        let par=dx*dirX + dy*dirY;
+        let perp=dx*nX + dy*nY;
+
+        let push=pushBase*tipFactor;
+        let keep=1 - bendFactor*tipFactor;
+        let perpKept=perp*keep;
+
+        let amp=swayAmpBase*tipFactor;
+        let sway=sin(t*swayFreq + s*5 + phase)*amp;
+
+        let parN=par+push;
+        let perpN=perpKept+sway;
+
+        return{
+          x:rootX + dirX*parN + nX*perpN,
+          y:rootY + dirY*parN + nY*perpN
+        };
+      }
+
+      for(let seg of segments){
+        let p1=deform(seg.x1,seg.y1);
+        let p2=deform(seg.x2,seg.y2);
+        line(p1.x,p1.y,p2.x,p2.y);
+      }
+    }
+
+    // ---------------- Wind Fetch --------------------
+    async function getWind(){
+      const city=document.getElementById('city').value.trim();
+      const info=document.getElementById('info');
+      if(!city){
+        info.innerHTML='<div>Please enter a city</div>';
+        return;
+      }
+      info.innerHTML='<div>Loading...</div>';
+      try{
+        const geo=await fetch(
+          `https://geocoding-api.open-meteo.com/v1/search?name=${encodeURIComponent(city)}&count=1`
+        );
+        const g=await geo.json();
+        if(!g.results||!g.results.length) throw new Error('City not found');
+
+        let {latitude,longitude,name}=g.results[0];
+        const weather=await fetch(
+          `https://api.open-meteo.com/v1/forecast?latitude=${latitude}&longitude=${longitude}&current=wind_speed_10m,wind_direction_10m,wind_gusts_10m&wind_speed_unit=ms&timezone=auto`
+        );
+        const w=await weather.json();
+
+        windSpeed=Number(w.current?.wind_speed_10m||0);
+        windDeg=Number(w.current?.wind_direction_10m||0);
+        windGust=Number(w.current?.wind_gusts_10m||0);
+
+        hasWind=windSpeed>0;
+        t=0;
+        updateWindInfo(name);
+      }catch(err){
+        info.innerHTML=`<div>Error:${err.message}</div>`;
+      }
+    }
+
+    function updateWindInfo(city){
+      const info=document.getElementById('info');
+      let wd=windDeg;
+      let d='N';
+      if(wd>=337.5||wd<22.5)d='N';
+      else if(wd<67.5)d='NE';
+      else if(wd<112.5)d='E';
+      else if(wd<157.5)d='SE';
+      else if(wd<202.5)d='S';
+      else if(wd<247.5)d='SW';
+      else if(wd<292.5)d='W';
+      else d='NW';
+
+      info.innerHTML=`
+      <div class="info-item"><span class="info-label">City:</span><span class="info-value">${city}</span></div>
+      <div class="info-item"><span class="info-label">Speed:</span><span class="info-value">${windSpeed.toFixed(1)} m/s</span></div>
+      <div class="info-item"><span class="info-label">Direction:</span><span class="info-value">${windDeg.toFixed(0)}° (${d})</span></div>
+      <div class="info-item"><span class="info-label">Gust:</span><span class="info-value">${windGust.toFixed(1)} m/s</span></div>
+      `;
+    }
+
+  </script>
+</body>
+</html>
